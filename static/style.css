@@ -1,0 +1,164 @@
+/* Fuente moderna */
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #f9fafb;
+  margin: 0;
+  padding: 0;
+  color: #111827;
+}
+
+/* Contenedor centrado tipo tarjeta */
+.container {
+  width: 90%;
+  max-width: 600px;
+  margin: 3rem auto;
+  padding: 2rem;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+}
+
+/* Título */
+h1 {
+  font-size: 1.75rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  color: #111827;
+}
+
+/* Etiquetas e inputs */
+label {
+  display: block;
+  margin-top: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+
+input {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+input:focus {
+  outline: none;
+  border-color: #6366f1;
+}
+
+/* Botón principal */
+button {
+  margin-top: 1.5rem;
+  width: 100%;
+  background-color: #6366f1;
+  color: white;
+  padding: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+button:hover {
+  background-color: #4f46e5;
+}
+
+/* Resultados */
+.result {
+  margin-top: 2rem;
+  background-color: #f3f4f6;
+  padding: 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  color: #1f2937;
+  word-wrap: break-word;
+}
+
+.result p {
+  margin: 0.5rem 0;
+}
+
+/* Imagen responsiva */
+.image-container {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.image-container img {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+}
+
+/* Ocultar div por defecto */
+.hidden {
+  display: none;
+}
+
+/* Mejora adicional para pantallas pequeñas */
+@media (max-width: 480px) {
+  .container {
+    padding: 1.5rem;
+    margin: 2rem auto;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  button {
+    font-size: 0.95rem;
+    padding: 0.6rem;
+  }
+
+  .result {
+    font-size: 0.95rem;
+    padding: 1rem;
+  }
+}
+.constants {
+  margin-top: 2rem;
+  background-color: #f1f5f9; /* gris muy claro */
+  padding: 1rem;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  color: #1e293b; /* azul oscuro */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.constants h2 {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  color: #0f172a; /* más oscuro */
+}
+
+.constants ul {
+  padding-left: 1.2rem;
+  margin: 0;
+}
+
+.constants li {
+  margin-bottom: 0.4rem;
+}
+
+/* Responsive para móviles */
+@media (max-width: 480px) {
+  .constants {
+    font-size: 0.9rem;
+    padding: 0.8rem;
+  }
+
+  .constants h2 {
+    font-size: 1rem;
+  }
+}

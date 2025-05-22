@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Calculadora de Luminarias</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <h1>💡 Calculadora de Luminarias</h1>
+
+    <div class="form">
+      <label for="base">Base del área (m):</label>
+      <input type="number" id="base" step="any" placeholder="Ej. 10" />
+
+      <label for="altura">Altura del área (m):</label>
+      <input type="number" id="altura" step="any" placeholder="Ej. 15" />
+
+      <button onclick="calcularLuminarias()">Calcular</button>
+      <div class="constants">
+        <h2>🔧 Constantes utilizadas</h2>
+        <ul>
+          <li><strong>LUXES requeridos:</strong> 500 lx</li>
+          <li><strong>Flujo luminoso por luminaria:</strong> 1600 lm</li>
+          <li><strong>Factor de mantenimiento (FM):</strong> 0.8</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="result hidden" id="resultado">
+      <p><strong>Área total:</strong> <span id="area"></span> m²</p>
+      <p><strong>Número total de luminarias necesarias:</strong> <span id="nl"></span></p>
+      <p><strong>Luminarias en la base (x):</strong> <span id="x"></span></p>
+      <p><strong>Luminarias en la altura (y):</strong> <span id="y"></span></p>
+      <p><strong>Total distribuido:</strong> <span id="totalDistribuido"></span> luminarias</p>
+      <div id="imagenDistribucion" class="image-container"></div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
