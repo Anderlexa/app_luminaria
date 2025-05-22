@@ -162,3 +162,21 @@ button:hover {
     font-size: 1rem;
   }
 }
+
+.footer {
+  text-align: center;
+  font-size: 0.8rem;
+  color: #6b7280; /* gris suave */
+  margin-top: 3rem;
+  padding-bottom: 1.5rem;
+  padding-top: 1rem;
+}
+
+.divider {
+  border: none;
+  height: 1px;
+  background-color: #e5e7eb; /* línea gris clara */
+  margin: 2rem auto 1rem auto;
+  width: 80%;
+  max-width: 500px;
+}
