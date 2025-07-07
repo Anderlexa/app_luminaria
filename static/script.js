@@ -1,7 +1,9 @@
 document.addEventListener("DOMContentLoaded", () => {
   const faceio = new faceIO("fioa4456", { container: "#faceio-modal-container" });
+
   let usuarioAutenticado = false;
 
+  // ⬅️ Esto hace las funciones accesibles globalmente desde HTML
   window.enrollUser = async function () {
     try {
       const userInfo = await faceio.enroll({
@@ -68,3 +70,4 @@ document.addEventListener("DOMContentLoaded", () => {
       });
   };
 });
+
