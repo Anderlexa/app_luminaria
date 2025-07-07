@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const faceio = new faceIO("fioa4456");
+  const faceio = new faceIO("fioa4456"); // ✅ Tu Public ID está correcto
 
   let usuarioAutenticado = false;
 
@@ -39,6 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("❌ Debes autenticarte con tu rostro antes de usar la calculadora.");
       return;
     }
+
     const base = parseFloat(document.getElementById('base').value);
     const altura = parseFloat(document.getElementById('altura').value);
 
