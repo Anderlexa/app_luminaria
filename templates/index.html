@@ -5,13 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Calculadora de Luminarias</title>
 
-  <!-- ✅ Carga del SDK CORRECTO -->
-  <script src="https://cdn.faceio.net/fio.js"></script>
+  <!-- ✅ SDK FaceIO cargado en el <head> -->
+  <script src="https://cdn.faceio.net/fio.js" defer></script>
 
+  <!-- ✅ Estilos y fuentes -->
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
+
+  <!-- ✅ Este contenedor es requerido por FaceIO, y debe estar al inicio -->
+  <div id="faceio-modal-container"></div>
+
   <div class="container">
     <h1>💡 Calculadora de Luminarias</h1>
 
@@ -48,10 +53,7 @@
     </div>
   </div>
 
-  <!-- 🔵 Este contenedor es obligatorio para FaceIO -->
-  <div id="faceio-modal-container"></div>
-
-  <!-- ✅ Coloca el script de tu app al final, para que cargue correctamente -->
+  <!-- ✅ Script de tu app al final del body -->
   <script src="{{ url_for('static', filename='script.js') }}"></script>
 
   <footer class="footer">
