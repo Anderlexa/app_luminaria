@@ -1,6 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const faceio = new faceIO("fioa4456"); // ✅ Tu Public ID está correcto
-
+  const faceio = new faceIO("fioa4456", { container: "#faceio-modal-container" });
   let usuarioAutenticado = false;
 
   window.enrollUser = async function () {
