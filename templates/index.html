@@ -6,6 +6,7 @@
   <title>Calculadora de Luminarias</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.faceio.net/fio.js"></script>
 </head>
 <body>
   <div class="container">
@@ -17,7 +18,9 @@
 
       <label for="altura">Altura del área (m):</label>
       <input type="number" id="altura" step="any" placeholder="Ej. 15" />
-
+      <button id="btnEnroll" onclick="enrollUser()">🔐 Registrar Rostro</button>
+      <button id="btnLogin" onclick="authenticateUser()">✅ Iniciar con Rostro</button>
+      <p id="authStatus" style="color: green; font-weight: bold;"></p>
       <button onclick="calcularLuminarias()">Calcular</button>
       <div class="constants">
         <h2>🔧 Constantes utilizadas</h2>

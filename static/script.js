@@ -1,4 +1,43 @@
+const faceio = new faceIO("fioac2ef"); // Reemplaza con tu Public ID real
+
+let usuarioAutenticado = false;
+
+async function enrollUser() {
+  try {
+    const userInfo = await faceio.enroll({
+      locale: "auto",
+      payload: {
+        email: "demo@luminaria.com",
+        nombre: "Usuario Luminaria"
+      }
+    });
+    console.log("Usuario registrado:", userInfo);
+    alert("✅ Registro exitoso. Ahora puedes iniciar sesión con tu rostro.");
+  } catch (error) {
+    console.error("Error al registrar:", error);
+    alert("❌ No se pudo registrar el rostro.");
+  }
+}
+
+async function authenticateUser() {
+  try {
+    const userData = await faceio.authenticate({
+      locale: "auto"
+    });
+    console.log("Usuario autenticado:", userData);
+    usuarioAutenticado = true;
+    document.getElementById("authStatus").innerText = "Autenticado con rostro ✅";
+  } catch (error) {
+    console.error("Error de autenticación:", error);
+    alert("❌ Falló la autenticación facial.");
+  }
+}
+
 function calcularLuminarias() {
+  if (!usuarioAutenticado) {
+    alert("❌ Debes autenticarte con tu rostro antes de usar la calculadora.");
+    return;
+  }
   const base = parseFloat(document.getElementById('base').value);
   const altura = parseFloat(document.getElementById('altura').value);
 

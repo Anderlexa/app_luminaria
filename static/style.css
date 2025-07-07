@@ -17,6 +17,7 @@ body {
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
   box-sizing: border-box;
+  transition: all 0.3s ease;
 }
 
 /* Título */
@@ -69,6 +70,37 @@ button:hover {
   background-color: #4f46e5;
 }
 
+/* Botones de FaceIO */
+#btnEnroll, #btnLogin {
+  background-color: #10b981; /* verde esmeralda */
+  margin-top: 0.8rem;
+  width: 100%;
+  color: white;
+  padding: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+#btnLogin {
+  margin-bottom: 1rem;
+}
+
+#btnEnroll:hover, #btnLogin:hover {
+  background-color: #059669 !important;
+}
+
+/* Mensaje de autenticación */
+#authStatus {
+  text-align: center;
+  font-size: 0.95rem;
+  margin-top: 0.5rem;
+  transition: all 0.3s ease;
+}
+
 /* Resultados */
 .result {
   margin-top: 2rem;
@@ -78,6 +110,7 @@ button:hover {
   font-size: 1rem;
   color: #1f2937;
   word-wrap: break-word;
+  transition: all 0.3s ease;
 }
 
 .result p {
@@ -104,34 +137,14 @@ button:hover {
   display: none;
 }
 
-/* Mejora adicional para pantallas pequeñas */
-@media (max-width: 480px) {
-  .container {
-    padding: 1.5rem;
-    margin: 2rem auto;
-  }
-
-  h1 {
-    font-size: 1.5rem;
-  }
-
-  button {
-    font-size: 0.95rem;
-    padding: 0.6rem;
-  }
-
-  .result {
-    font-size: 0.95rem;
-    padding: 1rem;
-  }
-}
+/* Constantes */
 .constants {
   margin-top: 2rem;
-  background-color: #f1f5f9; /* gris muy claro */
+  background-color: #f1f5f9;
   padding: 1rem;
   border-radius: 12px;
   font-size: 0.95rem;
-  color: #1e293b; /* azul oscuro */
+  color: #1e293b;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
 }
@@ -139,7 +152,7 @@ button:hover {
 .constants h2 {
   font-size: 1.1rem;
   margin-bottom: 0.5rem;
-  color: #0f172a; /* más oscuro */
+  color: #0f172a;
 }
 
 .constants ul {
@@ -151,22 +164,11 @@ button:hover {
   margin-bottom: 0.4rem;
 }
 
-/* Responsive para móviles */
-@media (max-width: 480px) {
-  .constants {
-    font-size: 0.9rem;
-    padding: 0.8rem;
-  }
-
-  .constants h2 {
-    font-size: 1rem;
-  }
-}
-
+/* Footer */
 .footer {
   text-align: center;
   font-size: 0.8rem;
-  color: #6b7280; /* gris suave */
+  color: #6b7280;
   margin-top: 3rem;
   padding-bottom: 1.5rem;
   padding-top: 1rem;
@@ -175,8 +177,41 @@ button:hover {
 .divider {
   border: none;
   height: 1px;
-  background-color: #e5e7eb; /* línea gris clara */
+  background-color: #e5e7eb;
   margin: 2rem auto 1rem auto;
   width: 80%;
   max-width: 500px;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .container {
+    padding: 1.5rem;
+    margin: 2rem auto;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  button,
+  #btnEnroll,
+  #btnLogin {
+    font-size: 0.95rem;
+    padding: 0.6rem;
+  }
+
+  .result {
+    font-size: 0.95rem;
+    padding: 1rem;
+  }
+
+  .constants {
+    font-size: 0.9rem;
+    padding: 0.8rem;
+  }
+
+  .constants h2 {
+    font-size: 1rem;
+  }
 }
