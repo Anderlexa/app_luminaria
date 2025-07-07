@@ -1,4 +1,4 @@
-const faceio = new faceIO("fioac2ef"); // Reemplaza con tu Public ID real
+const faceio = new faceIO("fioa4456"); // Reemplaza con tu Public ID real
 
 let usuarioAutenticado = false;
 
