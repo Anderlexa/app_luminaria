@@ -44,17 +44,26 @@ document.addEventListener("DOMContentLoaded", function () {
   };
 
   // 🚪 Cerrar sesión
-  window.logoutUser = function () {
-    faceio.clearSession(); // Limpiar la sesión de FaceIO
-    usuarioAutenticado = false;
-    document.getElementById("authStatus").innerText = ""; // Limpiar mensaje de autenticación
-    
-    // Mostrar el botón de "Autenticar" y ocultar "Cerrar sesión"
-    document.getElementById("btnLogin").style.display = "block";
-    document.getElementById("btnLogout").style.display = "none";
-    
-    alert("👋 Has cerrado sesión correctamente.");
-  };
+window.logoutUser = function () {
+  // Resetear el estado de autenticación
+  usuarioAutenticado = false;
+
+  // Limpiar mensaje de autenticación
+  document.getElementById("authStatus").innerText = "";
+
+  // Mostrar el botón de "Autenticar" y ocultar "Cerrar sesión"
+  document.getElementById("btnLogin").style.display = "block";
+  document.getElementById("btnLogout").style.display = "none";
+
+  // Opcional: Si FaceIO no tiene un método de limpiar sesión, podemos simplemente 
+  // cerrar cualquier modal o componente de FaceIO si está abierto.
+  if (typeof faceio !== "undefined" && faceio._faceioModal) {
+    faceio._faceioModal.close(); // Esto cerrará el modal de FaceIO si está abierto
+  }
+
+  alert("👋 Has cerrado sesión correctamente.");
+};
+
 
   // 💡 Calcular luminarias si el usuario fue autenticado
   window.calcularLuminarias = function () {
