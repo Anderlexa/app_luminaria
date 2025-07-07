@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <script src="https://cdn.faceio.net/fio-2.1.3.js"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Calculadora de Luminarias</title>
+
+  <!-- ✅ Carga del SDK CORRECTO -->
+  <script src="https://cdn.faceio.net/fio.js"></script>
+
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 </head>
@@ -18,10 +21,13 @@
 
       <label for="altura">Altura del área (m):</label>
       <input type="number" id="altura" step="any" placeholder="Ej. 15" />
+
       <button id="btnEnroll" onclick="enrollUser()">🔐 Registrar Rostro</button>
       <button id="btnLogin" onclick="authenticateUser()">✅ Iniciar con Rostro</button>
       <p id="authStatus" style="color: green; font-weight: bold;"></p>
+
       <button onclick="calcularLuminarias()">Calcular</button>
+
       <div class="constants">
         <h2>🔧 Constantes utilizadas</h2>
         <ul>
@@ -42,12 +48,15 @@
     </div>
   </div>
 
-  <script src="{{ url_for('static', filename='script.js') }}"></script>
+  <!-- 🔵 Este contenedor es obligatorio para FaceIO -->
   <div id="faceio-modal-container"></div>
+
+  <!-- ✅ Coloca el script de tu app al final, para que cargue correctamente -->
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+
   <footer class="footer">
     <hr class="divider" />
     <p>👥 Autores: <strong>Grupo 2</strong> – Changoluisa, Sandoval, Mensias, Taipicaña, Hernandez</p>
   </footer>
-
 </body>
 </html>
