@@ -93,6 +93,26 @@ button:hover {
   background-color: #059669 !important;
 }
 
+/* Botón de Cerrar sesión */
+#btnLogout {
+  background-color: #ef4444; /* rojo para indicar cierre de sesión */
+  margin-top: 0.8rem;
+  width: 100%;
+  color: white;
+  padding: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  display: none; /* Ocultar al inicio */
+}
+
+#btnLogout:hover {
+  background-color: #dc2626 !important;
+}
+
 /* Mensaje de autenticación */
 #authStatus {
   text-align: center;
@@ -196,7 +216,8 @@ button:hover {
 
   button,
   #btnEnroll,
-  #btnLogin {
+  #btnLogin,
+  #btnLogout {
     font-size: 0.95rem;
     padding: 0.6rem;
   }

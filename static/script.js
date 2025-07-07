@@ -33,10 +33,27 @@ document.addEventListener("DOMContentLoaded", function () {
       console.log("Usuario autenticado:", userData);
       usuarioAutenticado = true;
       document.getElementById("authStatus").innerText = "Autenticado con rostro ✅";
+      
+      // Ocultar el botón de "Iniciar con Rostro" y mostrar "Cerrar sesión"
+      document.getElementById("btnLogin").style.display = "none";
+      document.getElementById("btnLogout").style.display = "block";
     } catch (error) {
       console.error("Error de autenticación:", error);
       alert("❌ Falló la autenticación facial.");
     }
+  };
+
+  // 🚪 Cerrar sesión
+  window.logoutUser = function () {
+    faceio.clearSession(); // Limpiar la sesión de FaceIO
+    usuarioAutenticado = false;
+    document.getElementById("authStatus").innerText = ""; // Limpiar mensaje de autenticación
+    
+    // Mostrar el botón de "Autenticar" y ocultar "Cerrar sesión"
+    document.getElementById("btnLogin").style.display = "block";
+    document.getElementById("btnLogout").style.display = "none";
+    
+    alert("👋 Has cerrado sesión correctamente.");
   };
 
   // 💡 Calcular luminarias si el usuario fue autenticado
