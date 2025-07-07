@@ -42,8 +42,7 @@ document.addEventListener("DOMContentLoaded", function () {
       alert("❌ Falló la autenticación facial.");
     }
   };
-
-  // 🚪 Cerrar sesión
+// 🚪 Cerrar sesión
 window.logoutUser = function () {
   // Resetear el estado de autenticación
   usuarioAutenticado = false;
@@ -60,6 +59,11 @@ window.logoutUser = function () {
   if (typeof faceio !== "undefined" && faceio._faceioModal) {
     faceio._faceioModal.close(); // Esto cerrará el modal de FaceIO si está abierto
   }
+
+  // Re-crear la instancia de faceio para que no queden "residuos" de la sesión anterior
+  faceio = new faceIO("fioa4456", {
+    container: "#faceio-modal-container"
+  });
 
   alert("👋 Has cerrado sesión correctamente.");
 };
