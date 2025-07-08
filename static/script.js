@@ -1,6 +1,6 @@
 // Espera a que cargue el DOM para evitar errores de sincronización
 document.addEventListener("DOMContentLoaded", function () {
-  const faceio = new faceIO("fioa4456", {
+  let faceio = new faceIO("fioa4456", {
     container: "#faceio-modal-container"
   });
 
@@ -55,7 +55,7 @@ window.logoutUser = function () {
   document.getElementById("btnLogout").style.display = "none";
 
   // Opcional: Si FaceIO no tiene un método de limpiar sesión, podemos simplemente 
-  // cerrar cualquier modal o componente de FaceIO si está abierto.
+  // cerrar cualquier modal o componente de FaceIO si está abierto
   if (typeof faceio !== "undefined" && faceio._faceioModal) {
     faceio._faceioModal.close(); // Esto cerrará el modal de FaceIO si está abierto
   }
