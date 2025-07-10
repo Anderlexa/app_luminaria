@@ -1,6 +1,6 @@
 // Espera a que cargue el DOM para evitar errores de sincronización
 document.addEventListener("DOMContentLoaded", function () {
-  let faceio = new faceIO("fioa4456", {
+  let faceio = new faceIO("fioa2e2c", {
     container: "#faceio-modal-container"
   });
 
