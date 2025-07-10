@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Prueba de Detección ArUco</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Página de prueba para detección de ArUco -->
+  <div class="container">
+    <h1>🧪 Prueba de Detección ArUco</h1>
+    <!-- Sección de opciones de prueba -->
+    <div class="test-section">
+      <h3>📋 Instrucciones de Prueba</h3>
+      <p>Esta página te permite probar la funcionalidad de detección de ArUco sin necesidad de códigos físicos.</p>
+      <div class="test-options">
+        <!-- Campo para ingresar el tamaño del lado del ArUco en cm -->
+        <label for="tamanoLadoTest"><strong>Tamaño real del lado del marcador ArUco (cm):</strong></label>
+        <input type="number" id="tamanoLadoTest" step="any" value="5" min="0.1" style="width:120px; margin-bottom:1rem;" />
+        <!-- Opción 1: Imagen de prueba -->
+        <h4>Opción 1: Usar Imagen de Prueba</h4>
+        <p>Haz clic en el botón para probar con una imagen pre-generada:</p>
+        <button onclick="probarConImagen()" class="test-btn">🖼️ Probar con Imagen de Prueba</button>
+        <!-- Opción 2: Subir imagen propia -->
+        <h4>Opción 2: Subir Imagen</h4>
+        <p>Sube una imagen que contenga códigos ArUco:</p>
+        <input type="file" id="fileInput" accept="image/*" onchange="probarConArchivo(event)" />
+        <!-- Opción 3: Ir a la cámara -->
+        <h4>Opción 3: Usar Cámara Web</h4>
+        <p>Si tienes códigos ArUco impresos, puedes usar tu cámara web:</p>
+        <button onclick="irACamara()" class="test-btn">📷 Ir a Prueba con Cámara</button>
+      </div>
+      <!-- Resultados de la prueba -->
+      <div class="test-results" id="testResults" style="display:none;">
+        <h4>📊 Resultados de la Prueba</h4>
+        <div id="resultContent"></div>
+      </div>
+    </div>
+    <!-- Imagen de referencia para pruebas -->
+    <div class="test-image-section">
+      <h3>🖼️ Imagen de Referencia</h3>
+      <p>Esta es la imagen de prueba que se genera automáticamente:</p>
+      <img src="{{ url_for('static', filename='imagen_prueba_aruco.png') }}" 
+           alt="Imagen de prueba ArUco" 
+           style="max-width: 100%; border: 2px solid #ccc; border-radius: 8px;" />
+    </div>
+    <!-- Navegación para volver a la app principal -->
+    <div class="navigation">
+      <a href="/" class="nav-btn">🏠 Volver a la Aplicación Principal</a>
+    </div>
+  </div>
+  <!-- Fin de la página de prueba -->
+
+  <script>
+    async function probarConImagen() {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 800;
+        canvas.height = 600;
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = function() {
+          ctx.drawImage(img, 0, 0);
+          const imageData = canvas.toDataURL('image/jpeg', 0.8);
+          const tamanoLadoCm = parseFloat(document.getElementById('tamanoLadoTest').value) || 5;
+          const tamanoLado = tamanoLadoCm / 100.0;
+          enviarImagen(imageData, tamanoLado);
+        };
+        img.src = "{{ url_for('static', filename='imagen_prueba_aruco.png') }}";
+      } catch (error) {
+        mostrarResultado("Error al cargar la imagen de prueba: " + error.message, "error");
+      }
+    }
+    async function probarConArchivo(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const tamanoLadoCm = parseFloat(document.getElementById('tamanoLadoTest').value) || 5;
+        const tamanoLado = tamanoLadoCm / 100.0;
+        enviarImagen(e.target.result, tamanoLado);
+      };
+      reader.readAsDataURL(file);
+    }
+    async function enviarImagen(imageData, tamanoLado) {
+      try {
+        mostrarResultado("Procesando imagen...", "info");
+        const response = await fetch('/detectar_aruco', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            image: imageData,
+            tamano_lado: tamanoLado
+          })
+        });
+        const data = await response.json();
+        if (data.error) {
+          mostrarResultado("Error: " + data.error, "error");
+        } else if (data.success) {
+          mostrarResultado(`
+            <h5>✅ Detección Exitosa!</h5>
+            <p><strong>Base detectada:</strong> ${data.base} m</p>
+            <p><strong>Altura detectada:</strong> ${data.altura} m</p>
+            <p><strong>Área calculada:</strong> ${data.area} m²</p>
+            <p><strong>Distancia entre centros (px):</strong> ${data.distancia_detectada_px}</p>
+            <p><strong>Distancia real entre centros (m):</strong> ${data.distancia_real_metros}</p>
+            <p><strong>Escala (metros/píxel):</strong> ${data.metros_por_pixel}</p>
+            <p><strong>Tamaño lado usado:</strong> ${data.tamano_lado} m</p>
+            <p><em>Nota: Los valores son aproximados basados en la calibración actual.</em></p>
+          `, "success");
+        }
+      } catch (error) {
+        mostrarResultado("Error al procesar la imagen: " + error.message, "error");
+      }
+    }
+    
+    function mostrarResultado(contenido, tipo) {
+      const resultsDiv = document.getElementById('testResults');
+      const contentDiv = document.getElementById('resultContent');
+      
+      contentDiv.innerHTML = contenido;
+      contentDiv.className = `result-content ${tipo}`;
+      resultsDiv.style.display = 'block';
+      
+      // Scroll hacia los resultados
+      resultsDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    function irACamara() {
+      window.location.href = '/';
+    }
+  </script>
+
+  <style>
+    .test-section {
+      background-color: #f8fafc;
+      padding: 2rem;
+      border-radius: 12px;
+      margin-bottom: 2rem;
+      border: 2px solid #e2e8f0;
+    }
+    
+    .test-options {
+      margin: 1.5rem 0;
+    }
+    
+    .test-options h4 {
+      color: #1e293b;
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .test-btn {
+      background-color: #3b82f6;
+      margin: 0.5rem 0;
+      width: auto;
+      padding: 0.75rem 1.5rem;
+    }
+    
+    .test-btn:hover {
+      background-color: #2563eb;
+    }
+    
+    .test-results {
+      margin-top: 2rem;
+      padding: 1.5rem;
+      border-radius: 8px;
+      border: 1px solid #d1d5db;
+    }
+    
+    .result-content.success {
+      background-color: #dcfce7;
+      color: #166534;
+      padding: 1rem;
+      border-radius: 6px;
+    }
+    
+    .result-content.error {
+      background-color: #fef2f2;
+      color: #dc2626;
+      padding: 1rem;
+      border-radius: 6px;
+    }
+    
+    .result-content.info {
+      background-color: #dbeafe;
+      color: #1e40af;
+      padding: 1rem;
+      border-radius: 6px;
+    }
+    
+    .test-image-section {
+      background-color: #fef3c7;
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-bottom: 2rem;
+      border: 2px solid #f59e0b;
+    }
+    
+    .navigation {
+      text-align: center;
+      margin-top: 2rem;
+    }
+    
+    .nav-btn {
+      display: inline-block;
+      background-color: #6b7280;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: background-color 0.2s;
+    }
+    
+    .nav-btn:hover {
+      background-color: #4b5563;
+    }
+  </style>
+</body>
+</html> 

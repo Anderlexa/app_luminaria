@@ -1,0 +1,27 @@
+
+# Códigos ArUco para Medición de Luminarias
+
+## Instrucciones de Uso:
+
+1. **Imprime los códigos ArUco** que necesites (recomendamos al menos 2)
+2. **Coloca los códigos** en el espacio que quieres medir
+3. **Separa los códigos** por una distancia conocida (ej: 1 metro)
+4. **Usa la cámara** de la aplicación para detectar automáticamente las dimensiones
+
+## Códigos Disponibles:
+- aruco_0.png - ID: 0
+- aruco_1.png - ID: 1  
+- aruco_2.png - ID: 2
+- aruco_3.png - ID: 3
+- aruco_4.png - ID: 4
+- aruco_5.png - ID: 5
+- aruco_6.png - ID: 6
+- aruco_7.png - ID: 7
+- aruco_8.png - ID: 8
+- aruco_9.png - ID: 9
+
+## Consejos:
+- Imprime los códigos en papel blanco
+- Asegúrate de que estén bien iluminados
+- Mantén la cámara estable al capturar
+- Los códigos deben estar completamente visibles en la imagen

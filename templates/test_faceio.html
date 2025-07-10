@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba FaceIO</title>
+    <script src="https://cdn.faceio.net/fio.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Prueba de FaceIO</h1>
+        
+        <div id="faceio-modal-container"></div>
+        
+        <div id="status" class="status info">
+            Inicializando FaceIO...
+        </div>
+        
+        <button onclick="testEnroll()">🔐 Probar Registro</button>
+        <button onclick="testAuthenticate()">✅ Probar Autenticación</button>
+        <button onclick="testCamera()">📷 Probar Cámara</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        let faceio;
+        
+        // Inicializar FaceIO
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                if (typeof faceIO !== 'undefined') {
+                    faceio = new faceIO("fioa2e2c", {
+                        container: "#faceio-modal-container"
+                    });
+                    updateStatus("FaceIO inicializado correctamente", "success");
+                    console.log("FaceIO inicializado:", faceio);
+                } else {
+                    updateStatus("❌ FaceIO no está disponible", "error");
+                }
+            } catch (error) {
+                updateStatus("❌ Error al inicializar FaceIO: " + error.message, "error");
+                console.error("Error FaceIO:", error);
+            }
+        });
+        
+        function updateStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+        
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.textContent = new Date().toLocaleTimeString() + ': ' + message;
+            results.appendChild(div);
+        }
+        
+        async function testEnroll() {
+            if (!faceio) {
+                updateStatus("❌ FaceIO no está inicializado", "error");
+                return;
+            }
+            
+            try {
+                updateStatus("Iniciando registro...", "info");
+                addResult("Iniciando registro facial...");
+                
+                const userInfo = await faceio.enroll({
+                    locale: "auto",
+                    payload: {
+                        email: "test@example.com",
+                        nombre: "Usuario Test"
+                    }
+                });
+                
+                updateStatus("✅ Registro exitoso", "success");
+                addResult("Registro exitoso: " + JSON.stringify(userInfo), "success");
+                
+            } catch (error) {
+                updateStatus("❌ Error en registro: " + error.message, "error");
+                addResult("Error en registro: " + error.message, "error");
+                console.error("Error registro:", error);
+            }
+        }
+        
+        async function testAuthenticate() {
+            if (!faceio) {
+                updateStatus("❌ FaceIO no está inicializado", "error");
+                return;
+            }
+            
+            try {
+                updateStatus("Iniciando autenticación...", "info");
+                addResult("Iniciando autenticación facial...");
+                
+                const userData = await faceio.authenticate({
+                    locale: "auto"
+                });
+                
+                updateStatus("✅ Autenticación exitosa", "success");
+                addResult("Autenticación exitosa: " + JSON.stringify(userData), "success");
+                
+            } catch (error) {
+                updateStatus("❌ Error en autenticación: " + error.message, "error");
+                addResult("Error en autenticación: " + error.message, "error");
+                console.error("Error autenticación:", error);
+            }
+        }
+        
+        async function testCamera() {
+            try {
+                updateStatus("Probando acceso a cámara...", "info");
+                addResult("Solicitando acceso a cámara...");
+                
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: true 
+                });
+                
+                updateStatus("✅ Cámara accesible", "success");
+                addResult("Cámara accesible - Stream obtenido", "success");
+                
+                // Detener el stream
+                stream.getTracks().forEach(track => track.stop());
+                
+            } catch (error) {
+                updateStatus("❌ Error de cámara: " + error.message, "error");
+                addResult("Error de cámara: " + error.message, "error");
+                console.error("Error cámara:", error);
+            }
+        }
+    </script>
+</body>
+</html> 

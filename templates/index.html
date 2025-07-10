@@ -17,23 +17,72 @@
   <!-- ✅ Este contenedor es requerido por FaceIO, y debe estar al inicio -->
   <div id="faceio-modal-container"></div>
 
+  <!-- Contenedor principal de la app -->
   <div class="container">
     <h1>💡 Calculadora de Luminarias</h1>
 
+    <!-- Formulario principal -->
     <div class="form">
-      <label for="base">Base del área (m):</label>
-      <input type="number" id="base" step="any" placeholder="Ej. 10" />
+      <!-- Sección de cámara para medición automática -->
+      <div class="camera-section">
+        <h3>📷 Medición Automática con Cámara</h3>
+        <p class="instructions">
+          <strong>Instrucciones:</strong><br>
+          1. Coloca dos códigos ArUco en el espacio a medir<br>
+          2. Asegúrate de que ambos sean del mismo tamaño y que conozcas el tamaño real de su lado<br>
+          3. Ingresa el tamaño real del lado del marcador en centímetros<br>
+          4. Presiona "Activar Cámara" y apunta hacia los códigos<br>
+          5. La medición se actualizará en tiempo real
+        </p>
+        <!-- Campo para ingresar el tamaño del lado del ArUco en cm -->
+        <label for="tamanoLado">Tamaño real del lado del marcador ArUco (cm):</label>
+        <input type="number" id="tamanoLado" step="any" value="5" min="0.1" />
+        <!-- Controles de la cámara -->
+        <div class="camera-controls">
+          <button id="btnActivarCamara" onclick="activarCamara()">📷 Activar Cámara</button>
+          <button id="btnDetenerCamara" onclick="detenerCamara()" style="display:none;">⏹️ Detener Cámara</button>
+        </div>
+        <!-- Video y canvas para mostrar la cámara -->
+        <div class="camera-container">
+          <video id="video" autoplay playsinline style="display:none; width:100%; max-width:400px; border:2px solid #ccc;"></video>
+          <canvas id="canvas" style="display:none; width:100%; max-width:400px; border:2px solid #ccc;"></canvas>
+          <div id="cameraStatus" class="status-message"></div>
+        </div>
+        <!-- Resultados de la medición automática -->
+        <div class="measurement-results" id="measurementResults" style="display:none;">
+          <h4>📏 Resultados de Medición:</h4>
+          <p><strong>Base detectada:</strong> <span id="baseDetectada">-</span> m</p>
+          <p><strong>Altura detectada:</strong> <span id="alturaDetectada">-</span> m</p>
+          <p><strong>Área calculada:</strong> <span id="areaDetectada">-</span> m²</p>
+        </div>
+      </div>
 
-      <label for="altura">Altura del área (m):</label>
-      <input type="number" id="altura" step="any" placeholder="Ej. 15" />
+      <!-- Sección manual alternativa -->
+      <div class="manual-section" style="display:none;">
+        <h3>✏️ Medición Manual (Alternativa)</h3>
+        <label for="base">Base del área (m):</label>
+        <input type="number" id="base" step="any" placeholder="Ej. 10" />
+        <label for="altura">Altura del área (m):</label>
+        <input type="number" id="altura" step="any" placeholder="Ej. 15" />
+      </div>
 
+      <!-- Botón para cambiar entre modos -->
+      <div class="toggle-section">
+        <button onclick="toggleMeasurementMode()" class="toggle-btn">🔄 Cambiar a Medición Manual</button>
+        <a href="/test" class="test-link">🧪 Ir a Página de Prueba</a>
+        <a href="/test_faceio" class="test-link">🔐 Probar FaceIO</a>
+      </div>
+
+      <!-- Autenticación facial -->
       <button id="btnEnroll" onclick="enrollUser()">🔐 Registrar Rostro</button>
       <button id="btnLogin" onclick="authenticateUser()">✅ Iniciar con Rostro</button>
-      <button id="btnLogout" onclick="logoutUser()" style="display:none;">🚪 Cerrar           	sesión</button>
+      <button id="btnLogout" onclick="logoutUser()" style="display:none;">🚪 Cerrar sesión</button>
       <p id="authStatus" style="color: green; font-weight: bold;"></p>
 
+      <!-- Botón para calcular luminarias -->
       <button onclick="calcularLuminarias()">Calcular</button>
 
+      <!-- Constantes utilizadas en el cálculo -->
       <div class="constants">
         <h2>🔧 Constantes utilizadas</h2>
         <ul>
@@ -44,6 +93,7 @@
       </div>
     </div>
 
+    <!-- Resultados finales del cálculo de luminarias -->
     <div class="result hidden" id="resultado">
       <p><strong>Área total:</strong> <span id="area"></span> m²</p>
       <p><strong>Número total de luminarias necesarias:</strong> <span id="nl"></span></p>
@@ -53,6 +103,7 @@
       <div id="imagenDistribucion" class="image-container"></div>
     </div>
   </div>
+  <!-- Fin del contenedor principal -->
 
   <!-- ✅ Script de tu app al final del body -->
   <script src="{{ url_for('static', filename='script.js') }}"></script>
