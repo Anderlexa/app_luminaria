@@ -151,17 +151,27 @@ window.activarCamara = async function() {
     video.style.display = 'block';
     
     // Esperar a que el video esté listo
-    await new Promise((resolve) => {
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error("Timeout al cargar el video"));
+      }, 10000); // 10 segundos de timeout
+      
       video.addEventListener('loadedmetadata', function() {
+        clearTimeout(timeout);
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         console.log(`Video configurado: ${video.videoWidth}x${video.videoHeight}`);
         resolve();
       });
+      
+      video.addEventListener('error', function() {
+        clearTimeout(timeout);
+        reject(new Error("Error al cargar el video"));
+      });
     });
     
+    // Mostrar botones correctamente
     document.getElementById('btnActivarCamara').style.display = 'none';
-    document.getElementById('btnCapturar').style.display = 'none';
     document.getElementById('btnDetenerCamara').style.display = 'inline-block';
     mostrarStatus("Cámara activada. Medición en tiempo real...", "success");
     
@@ -183,10 +193,16 @@ window.activarCamara = async function() {
       mensajeError = "❌ La cámara no soporta la resolución solicitada.";
     } else if (error.message.includes("getUserMedia")) {
       mensajeError = "❌ Tu navegador no soporta acceso a la cámara.";
+    } else if (error.message.includes("Timeout")) {
+      mensajeError = "❌ Tiempo de espera agotado al cargar la cámara.";
     }
     
     mostrarStatus(mensajeError, "error");
     console.error("Error completo:", error);
+    
+    // Asegurar que los botones estén en el estado correcto
+    document.getElementById('btnActivarCamara').style.display = 'inline-block';
+    document.getElementById('btnDetenerCamara').style.display = 'none';
   }
 };
 
@@ -221,24 +237,39 @@ window.capturarYMedir = function() {
 
 // ⏹️ Detener cámara
 window.detenerCamara = function() {
-  if (stream) {
-    stream.getTracks().forEach(track => track.stop());
-    stream = null;
-  }
+  console.log("Deteniendo cámara...");
   
-  video.style.display = 'none';
-  canvas.style.display = 'none';
-  
-  document.getElementById('btnActivarCamara').style.display = 'inline-block';
-  document.getElementById('btnCapturar').style.display = 'none';
-  document.getElementById('btnDetenerCamara').style.display = 'none';
-  
-  mostrarStatus("Cámara detenida.", "info");
-  // Detener medición en tiempo real
+  // Detener medición en tiempo real primero
   if (intervaloMedicion) {
     clearInterval(intervaloMedicion);
     intervaloMedicion = null;
   }
+  
+  // Detener el stream de la cámara
+  if (stream) {
+    stream.getTracks().forEach(track => {
+      track.stop();
+      console.log("Track detenido:", track.kind);
+    });
+    stream = null;
+  }
+  
+  // Ocultar elementos de video
+  if (video) {
+    video.srcObject = null;
+    video.style.display = 'none';
+  }
+  
+  if (canvas) {
+    canvas.style.display = 'none';
+  }
+  
+  // Restaurar botones al estado inicial
+  document.getElementById('btnActivarCamara').style.display = 'inline-block';
+  document.getElementById('btnDetenerCamara').style.display = 'none';
+  
+  mostrarStatus("Cámara detenida.", "info");
+  console.log("Cámara detenida correctamente");
 };
 
 // --- Captura y envía un frame cada 500 ms para medición en tiempo real ---
