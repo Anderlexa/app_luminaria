@@ -26,24 +26,15 @@ def privacy():
 def terms():
     return render_template("terms.html")
 
-@app.route("/test")
-def test():
-    return render_template("test.html")
-
-@app.route("/test_faceio")
-def test_faceio():
-    return render_template("test_faceio.html")
-
 # --- Ruta para calcular luminarias ---
 @app.route("/generar")
 def generar():
-    # Recibe base y altura, calcula luminarias y devuelve resultados
+    # Recibe distancia, calcula luminarias y devuelve resultados
     try:
-        base = float(request.args.get("base", 0))
-        altura = float(request.args.get("altura", 0))
-        if base <= 0 or altura <= 0:
-            return jsonify({"error": "Base y altura deben ser mayores que 0."})
-        resultado = calcular_y_generar_imagen(base, altura)
+        distancia = float(request.args.get("distancia", 0))
+        if distancia <= 0:
+            return jsonify({"error": "La distancia debe ser mayor que 0."})
+        resultado = calcular_y_generar_imagen(distancia)
         return jsonify({
             "area": resultado["area"],
             "nl": resultado["nl"],
@@ -95,24 +86,18 @@ def detectar_aruco():
         lado_px = float(np.mean(lados_marker1))
         # Calcula la escala metros/píxel
         metros_por_pixel = TAMANO_REAL_LADO / lado_px
-        # Diferencia en X y Y (en píxeles)
-        delta_x = abs(center2[0] - center1[0])
-        delta_y = abs(center2[1] - center1[1])
-        # Base y altura en metros
-        base_metros = delta_x * metros_por_pixel
-        altura_metros = delta_y * metros_por_pixel
-        area = base_metros * altura_metros
-        # Distancia diagonal entre centros (opcional)
+        # Distancia diagonal entre centros (en píxeles)
         distancia_centros_px = float(np.linalg.norm(center2 - center1))
+        # Distancia real en metros
         distancia_real_metros = distancia_centros_px * metros_por_pixel
+        # Área del cuadrado
+        area = distancia_real_metros * distancia_real_metros
         # Devuelve los resultados al frontend
         return jsonify({
             "success": True,
-            "base": round(float(base_metros), 2),
-            "altura": round(float(altura_metros), 2),
+            "distancia": round(float(distancia_real_metros), 3),
             "area": round(float(area), 2),
             "distancia_detectada_px": round(float(distancia_centros_px), 2),
-            "distancia_real_metros": round(float(distancia_real_metros), 3),
             "metros_por_pixel": metros_por_pixel,
             "tamano_lado": TAMANO_REAL_LADO
         })

@@ -7,6 +7,7 @@ let canvas = null;
 let ctx = null;
 let modoCamara = true; // true = cámara, false = manual
 let intervaloMedicion = null; // Para medición en tiempo real
+let distanciaGuardada = null; // Para guardar la distancia medida
 
 // --- Inicialización al cargar la página ---
 document.addEventListener("DOMContentLoaded", function () {
@@ -21,7 +22,7 @@ document.addEventListener("DOMContentLoaded", function () {
   try {
     if (typeof faceIO !== 'undefined') {
       faceio = new faceIO("fioa2e2c", {
-    container: "#faceio-modal-container"
+        container: "#faceio-modal-container"
       });
       console.log("FaceIO inicializado correctamente");
     } else {
@@ -35,24 +36,24 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 // --- Funciones de autenticación facial ---
-  window.enrollUser = async function () {
-    try {
+window.enrollUser = async function () {
+  try {
     console.log("Iniciando registro facial...");
     
     if (!faceio) {
       throw new Error("FaceIO no está inicializado");
     }
     
-      const userInfo = await faceio.enroll({
-        locale: "auto",
-        payload: {
-          email: "demo@luminaria.com",
-          nombre: "Usuario Luminaria"
-        }
-      });
-      console.log("Usuario registrado:", userInfo);
-      alert("✅ Registro exitoso. Ahora puedes iniciar sesión con tu rostro.");
-    } catch (error) {
+    const userInfo = await faceio.enroll({
+      locale: "auto",
+      payload: {
+        email: "demo@luminaria.com",
+        nombre: "Usuario Luminaria"
+      }
+    });
+    console.log("Usuario registrado:", userInfo);
+    alert("✅ Registro exitoso. Ahora puedes iniciar sesión con tu rostro.");
+  } catch (error) {
     console.error("Error detallado al registrar:", error);
     
     // Mensajes de error más específicos
@@ -73,23 +74,23 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 };
 
-  window.authenticateUser = async function () {
-    try {
+window.authenticateUser = async function () {
+  try {
     console.log("Iniciando autenticación facial...");
     
     if (!faceio) {
       throw new Error("FaceIO no está inicializado");
     }
     
-      const userData = await faceio.authenticate({
-        locale: "auto"
-      });
-      console.log("Usuario autenticado:", userData);
-      usuarioAutenticado = true;
-      document.getElementById("authStatus").innerText = "Autenticado con rostro ✅";
-      document.getElementById("btnLogin").style.display = "none";
-      document.getElementById("btnLogout").style.display = "block";
-    } catch (error) {
+    const userData = await faceio.authenticate({
+      locale: "auto"
+    });
+    console.log("Usuario autenticado:", userData);
+    usuarioAutenticado = true;
+    document.getElementById("authStatus").innerText = "Autenticado con rostro ✅";
+    document.getElementById("btnLogin").style.display = "none";
+    document.getElementById("btnLogout").style.display = "block";
+  } catch (error) {
     console.error("Error detallado de autenticación:", error);
     
     let mensajeError = "❌ Falló la autenticación facial.";
@@ -373,11 +374,24 @@ async function detectarArUcoTiempoReal(imageData, tamanoLado) {
       return;
     }
     if (data.success) {
-      document.getElementById('baseDetectada').textContent = data.base;
-      document.getElementById('alturaDetectada').textContent = data.altura;
+      // Guardar la distancia medida
+      distanciaGuardada = data.distancia;
+      
+      // Mostrar resultados
+      document.getElementById('distanciaDetectada').textContent = data.distancia;
       document.getElementById('areaDetectada').textContent = data.area;
       document.getElementById('measurementResults').style.display = 'block';
-      mostrarStatus(`Distancia entre centros: ${data.distancia_real_metros} m | Área: ${data.area} m²`, "success");
+      
+      // Llenar campo manual automáticamente
+      document.getElementById('distancia').value = data.distancia;
+      
+      mostrarStatus(`Distancia medida: ${data.distancia} m | Área: ${data.area} m²`, "success");
+      
+      // Detener cámara automáticamente después de 2 segundos
+      setTimeout(() => {
+        detenerCamara();
+        mostrarStatus("Medición completada. Cámara cerrada automáticamente.", "success");
+      }, 2000);
     }
   } catch (error) {
     mostrarStatus("Error al procesar la imagen en el servidor.", "error");
@@ -392,54 +406,48 @@ function mostrarStatus(mensaje, tipo) {
 }
 
 // 💡 Calcular luminarias
-  window.calcularLuminarias = function () {
-    if (!usuarioAutenticado) {
-      alert("❌ Debes autenticarte con tu rostro antes de usar la calculadora.");
-      return;
-    }
-
-  let base, altura;
-  
-  if (modoCamara) {
-    // Usar valores detectados por cámara
-    const baseText = document.getElementById('baseDetectada').textContent;
-    const alturaText = document.getElementById('alturaDetectada').textContent;
-    
-    if (baseText === '-' || alturaText === '-') {
-      alert("Primero debes medir el área con la cámara.");
-      return;
-    }
-    
-    base = parseFloat(baseText);
-    altura = parseFloat(alturaText);
-  } else {
-    // Usar valores manuales
-    base = parseFloat(document.getElementById('base').value);
-    altura = parseFloat(document.getElementById('altura').value);
+window.calcularLuminarias = function () {
+  if (!usuarioAutenticado) {
+    alert("❌ Debes autenticarte con tu rostro antes de usar la calculadora.");
+    return;
   }
 
-    if (isNaN(base) || isNaN(altura) || base <= 0 || altura <= 0) {
-      alert("Por favor, ingresa valores válidos para base y altura.");
+  let distancia;
+  
+  if (modoCamara) {
+    // Usar distancia detectada por cámara
+    if (!distanciaGuardada) {
+      alert("Primero debes medir la distancia con la cámara.");
       return;
     }
+    distancia = distanciaGuardada;
+  } else {
+    // Usar distancia manual
+    distancia = parseFloat(document.getElementById('distancia').value);
+  }
 
-    fetch(`/generar?base=${base}&altura=${altura}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) throw new Error(data.error);
+  if (isNaN(distancia) || distancia <= 0) {
+    alert("Por favor, ingresa una distancia válida mayor que 0.");
+    return;
+  }
 
-        document.getElementById('area').innerText = data.area;
-        document.getElementById('nl').innerText = data.nl;
-        document.getElementById('x').innerText = data.x;
-        document.getElementById('y').innerText = data.y;
-        document.getElementById('totalDistribuido').innerText = data.total;
-        document.getElementById('imagenDistribucion').innerHTML = `
-          <img src="${data.image_url}" alt="Distribución de luminarias" />
-        `;
-        document.getElementById('resultado').classList.remove("hidden");
-      })
-      .catch(err => {
-        document.getElementById('resultado').classList.remove("hidden");
-        document.getElementById('imagenDistribucion').innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
-      });
-  };
+  fetch(`/generar?distancia=${distancia}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.error) throw new Error(data.error);
+
+      document.getElementById('area').innerText = data.area;
+      document.getElementById('nl').innerText = data.nl;
+      document.getElementById('x').innerText = data.x;
+      document.getElementById('y').innerText = data.y;
+      document.getElementById('totalDistribuido').innerText = data.total;
+      document.getElementById('imagenDistribucion').innerHTML = `
+        <img src="${data.image_url}" alt="Distribución de luminarias" />
+      `;
+      document.getElementById('resultado').classList.remove("hidden");
+    })
+    .catch(err => {
+      document.getElementById('resultado').classList.remove("hidden");
+      document.getElementById('imagenDistribucion').innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
+    });
+};
