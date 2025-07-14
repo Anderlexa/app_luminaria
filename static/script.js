@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Inicializa FaceIO con manejo de errores
   try {
     if (typeof faceIO !== 'undefined') {
-      faceio = new faceIO("fioa2e2c", {
+      faceio = new faceIO("fioaa9ea", {
         container: "#faceio-modal-container"
       });
       console.log("FaceIO inicializado correctamente");
