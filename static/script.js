@@ -8,6 +8,7 @@ let ctx = null;
 let modoCamara = true; // true = cámara, false = manual
 let intervaloMedicion = null; // Para medición en tiempo real
 let distanciaGuardada = null; // Para guardar la distancia medida
+let debugInfoVisible = false; // Para mostrar/ocultar información técnica
 
 // --- Inicialización al cargar la página ---
 document.addEventListener("DOMContentLoaded", function () {
@@ -122,6 +123,22 @@ window.logoutUser = function () {
   alert("👋 Has cerrado sesión correctamente.");
 };
 
+// --- Función para mostrar/ocultar información técnica ---
+window.toggleDebugInfo = function() {
+  const debugInfo = document.getElementById('debugInfo');
+  const toggleBtn = document.getElementById('btnToggleDebug');
+  
+  debugInfoVisible = !debugInfoVisible;
+  
+  if (debugInfoVisible) {
+    debugInfo.style.display = 'block';
+    toggleBtn.textContent = '🔧 Ocultar Información Técnica';
+  } else {
+    debugInfo.style.display = 'none';
+    toggleBtn.textContent = '🔧 Mostrar Información Técnica';
+  }
+};
+
 // --- Activa la cámara y comienza medición en tiempo real ---
 window.activarCamara = async function() {
   try {
@@ -174,7 +191,7 @@ window.activarCamara = async function() {
     // Mostrar botones correctamente
     document.getElementById('btnActivarCamara').style.display = 'none';
     document.getElementById('btnDetenerCamara').style.display = 'inline-block';
-    mostrarStatus("Cámara activada. Medición en tiempo real...", "success");
+    mostrarStatus("Cámara activada. Medición en tiempo real con precisión mejorada...", "success");
     
     // Inicia medición en tiempo real cada 500 ms
     intervaloMedicion = setInterval(() => { medirEnTiempoReal(); }, 500);
@@ -215,7 +232,7 @@ window.capturarYMedir = function() {
   }
   
   try {
-    mostrarStatus("Capturando imagen y detectando códigos ArUco...", "info");
+    mostrarStatus("Capturando imagen y detectando códigos ArUco con precisión mejorada...", "info");
     
     // Dibujar el frame actual en el canvas
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -377,15 +394,24 @@ async function detectarArUcoTiempoReal(imageData, tamanoLado) {
       // Guardar la distancia medida
       distanciaGuardada = data.distancia;
       
-      // Mostrar resultados
+      // Mostrar resultados principales
       document.getElementById('distanciaDetectada').textContent = data.distancia;
       document.getElementById('areaDetectada').textContent = data.area;
       document.getElementById('measurementResults').style.display = 'block';
       
+      // Mostrar información técnica si está disponible
+      if (data.debug_info) {
+        document.getElementById('ladoPx').textContent = data.debug_info.lado_px.toFixed(2);
+        document.getElementById('metrosPorPixel').textContent = data.debug_info.metros_por_pixel.toFixed(6);
+        document.getElementById('distanciaCentros').textContent = data.debug_info.distancia_centros_metros.toFixed(3);
+        document.getElementById('diferenciaCentrosBordes').textContent = data.debug_info.diferencia_centros_bordes.toFixed(3);
+        document.getElementById('idsDetectados').textContent = data.debug_info.ids_detectados.join(', ');
+      }
+      
       // Llenar campo manual automáticamente
       document.getElementById('distancia').value = data.distancia;
       
-      mostrarStatus(`Distancia medida: ${data.distancia} m | Área: ${data.area} m²`, "success");
+      mostrarStatus(`Distancia medida (bordes externos): ${data.distancia} m | Área: ${data.area} m²`, "success");
       
       // Detener cámara automáticamente después de 2 segundos
       setTimeout(() => {

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Calculadora de Luminarias</title>
+  <title>Calculadora de Luminarias - Precisión Mejorada</title>
 
   <!-- ✅ SDK FaceIO cargado en el <head> -->
   <script src="https://cdn.faceio.net/fio.js" defer></script>
@@ -19,20 +19,30 @@
 
   <!-- Contenedor principal de la app -->
   <div class="container">
-    <h1>💡 Calculadora de Luminarias</h1>
+    <h1>💡 Calculadora de Luminarias - Precisión Mejorada</h1>
 
     <!-- Formulario principal -->
     <div class="form">
       <!-- Sección de cámara para medición automática -->
       <div class="camera-section">
-        <h3>📷 Medición Automática con Cámara</h3>
+        <h3>📷 Medición Automática con Cámara - Precisión Mejorada</h3>
+        <div class="precision-info">
+          <h4>🎯 Mejoras de Precisión Implementadas:</h4>
+          <ul>
+            <li><strong>Medición desde Bordes Externos:</strong> Mayor precisión que medir desde centros</li>
+            <li><strong>Detección Optimizada:</strong> Parámetros mejorados para estabilidad</li>
+            <li><strong>Filtrado de Outliers:</strong> Elimina mediciones erróneas</li>
+            <li><strong>Refinamiento de Esquinas:</strong> Precisión subpíxel</li>
+          </ul>
+        </div>
         <p class="instructions">
-          <strong>Instrucciones:</strong><br>
+          <strong>Instrucciones Mejoradas:</strong><br>
           1. Coloca dos códigos ArUco en el espacio a medir<br>
           2. Asegúrate de que ambos sean del mismo tamaño y que conozcas el tamaño real de su lado<br>
           3. Ingresa el tamaño real del lado del marcador en centímetros<br>
           4. Presiona "Activar Cámara" y apunta hacia los códigos<br>
-          5. La medición se actualizará en tiempo real
+          5. La medición se realiza automáticamente desde los bordes externos<br>
+          6. Mantén la cámara estable para máxima precisión
         </p>
         <!-- Campo para ingresar el tamaño del lado del ArUco en cm -->
         <label for="tamanoLado">Tamaño real del lado del marcador ArUco (cm):</label>
@@ -50,9 +60,24 @@
         </div>
         <!-- Resultados de la medición automática -->
         <div class="measurement-results" id="measurementResults" style="display:none;">
-          <h4>📏 Resultados de Medición:</h4>
-          <p><strong>Distancia detectada:</strong> <span id="distanciaDetectada">-</span> m</p>
+          <h4>📏 Resultados de Medición Mejorada:</h4>
+          <p><strong>Distancia detectada (bordes externos):</strong> <span id="distanciaDetectada">-</span> m</p>
           <p><strong>Área calculada:</strong> <span id="areaDetectada">-</span> m²</p>
+          
+          <!-- Información de debugging -->
+          <div class="debug-info" id="debugInfo" style="display:none;">
+            <h5>🔧 Información Técnica:</h5>
+            <p><strong>Lado detectado (px):</strong> <span id="ladoPx">-</span></p>
+            <p><strong>Metros por píxel:</strong> <span id="metrosPorPixel">-</span></p>
+            <p><strong>Distancia entre centros:</strong> <span id="distanciaCentros">-</span> m</p>
+            <p><strong>Diferencia centros-bordes:</strong> <span id="diferenciaCentrosBordes">-</span> m</p>
+            <p><strong>IDs detectados:</strong> <span id="idsDetectados">-</span></p>
+          </div>
+          
+          <!-- Botón para mostrar/ocultar información técnica -->
+          <button id="btnToggleDebug" onclick="toggleDebugInfo()" style="margin-top: 10px; padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">
+            🔧 Mostrar Información Técnica
+          </button>
         </div>
       </div>
 
@@ -106,6 +131,7 @@
   <footer class="footer">
     <hr class="divider" />
     <p>👥 Autores: <strong>Grupo 2</strong> – Changoluisa, Sandoval, Mensias, Taipicaña, Hernandez</p>
+    <p>🎯 Versión con precisión mejorada - Medición desde bordes externos</p>
   </footer>
 </body>
 </html>
