@@ -73,29 +73,39 @@ def test_deteccion_aruco_mejorada():
     # Convertir a escala de grises
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     
-    # Configurar detector con parámetros optimizados
+    # Configurar detector con parámetros compatibles
     aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
     aruco_params = cv2.aruco.DetectorParameters()
     
-    # Parámetros optimizados
-    aruco_params.adaptiveThreshWinSizeMin = 3
-    aruco_params.adaptiveThreshWinSizeMax = 23
-    aruco_params.adaptiveThreshWinSizeStep = 10
-    aruco_params.adaptiveThreshConstant = 7
-    aruco_params.minMarkerPerimeterRate = 0.03
-    aruco_params.maxMarkerPerimeterRate = 4.0
-    aruco_params.polygonalApproxAccuracyRate = 0.03
-    aruco_params.minCornerDistanceRate = 0.05
-    aruco_params.minDistanceToBorder = 3
-    aruco_params.minOtsuStdDev = 5.0
-    aruco_params.perspectiveRemovePixelPerCell = 4
-    aruco_params.perspectiveRemoveIgnoredMarginPerCell = 0.13
-    aruco_params.maxErroneousBitsInBorderRate = 0.35
-    aruco_params.minErrorCorrectionRate = 0.6
-    aruco_params.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX
-    aruco_params.cornerRefinementWinSize = 5
-    aruco_params.cornerRefinementMaxIterations = 30
-    aruco_params.cornerRefinementMinAccuracy = 0.01
+    # Parámetros optimizados compatibles con diferentes versiones de OpenCV
+    try:
+        aruco_params.adaptiveThreshWinSizeMin = 3
+        aruco_params.adaptiveThreshWinSizeMax = 23
+        aruco_params.adaptiveThreshWinSizeStep = 10
+        aruco_params.adaptiveThreshConstant = 7
+        aruco_params.minMarkerPerimeterRate = 0.03
+        aruco_params.maxMarkerPerimeterRate = 4.0
+        aruco_params.polygonalApproxAccuracyRate = 0.03
+        aruco_params.minCornerDistanceRate = 0.05
+        aruco_params.minDistanceToBorder = 3
+        aruco_params.minOtsuStdDev = 5.0
+        aruco_params.perspectiveRemovePixelPerCell = 4
+        aruco_params.perspectiveRemoveIgnoredMarginPerCell = 0.13
+        aruco_params.maxErroneousBitsInBorderRate = 0.35
+        
+        # Parámetros que pueden no estar disponibles en todas las versiones
+        if hasattr(aruco_params, 'cornerRefinementMethod'):
+            aruco_params.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX
+        if hasattr(aruco_params, 'cornerRefinementWinSize'):
+            aruco_params.cornerRefinementWinSize = 5
+        if hasattr(aruco_params, 'cornerRefinementMaxIterations'):
+            aruco_params.cornerRefinementMaxIterations = 30
+        if hasattr(aruco_params, 'cornerRefinementMinAccuracy'):
+            aruco_params.cornerRefinementMinAccuracy = 0.01
+            
+    except AttributeError as e:
+        print(f"Advertencia: Algunos parámetros no están disponibles: {e}")
+        # Continuar con parámetros por defecto
     
     detector = cv2.aruco.ArucoDetector(aruco_dict, aruco_params)
     corners, ids, rejected = detector.detectMarkers(gray)
