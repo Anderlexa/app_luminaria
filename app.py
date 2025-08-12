@@ -490,80 +490,60 @@ def calcular_escala_precisa(corners, tamano_real_lado):
 def generar_visualizacion_medicion_optimizada(imagen_original, corners1, corners2, puntos_medicion, 
                                              distancia_final, metodo_usado, confianza, debug_info):
     """
-    Genera una visualización optimizada usando OpenCV en lugar de matplotlib.
-    Es mucho más rápida y eficiente.
+    Genera una visualización ultra-rápida mostrando solo la distancia entre ArUcos.
     """
     # Crear una copia de la imagen para dibujar
     imagen_visualizacion = imagen_original.copy()
     
-    # Convertir BGR a RGB si es necesario
-    if len(imagen_visualizacion.shape) == 3:
-        imagen_visualizacion = cv2.cvtColor(imagen_visualizacion, cv2.COLOR_BGR2RGB)
-    
     # Colores para los marcadores
-    color_rojo = (255, 0, 0)
-    color_azul = (0, 0, 255)
-    color_verde = (0, 255, 0)
-    color_naranja = (255, 165, 0)
-    color_purpura = (128, 0, 128)
-    color_amarillo = (255, 255, 0)
+    color_rojo = (0, 0, 255)  # BGR
+    color_azul = (255, 0, 0)  # BGR
+    color_verde = (0, 255, 0)  # BGR
+    color_naranja = (0, 165, 255)  # BGR
+    color_purpura = (128, 0, 128)  # BGR
     
-    # Dibujar marcadores
+    # Dibujar marcadores (solo contornos)
     for i, corners in enumerate([corners1, corners2]):
         color = color_rojo if i == 0 else color_azul
-        
-        # Dibujar esquinas
-        for corner in corners:
-            cv2.circle(imagen_visualizacion, (int(corner[0]), int(corner[1])), 4, color, -1)
-        
-        # Dibujar contorno del marcador
         corners_int = corners.astype(np.int32)
         cv2.polylines(imagen_visualizacion, [corners_int], True, color, 2)
-        
-        # Agregar ID del marcador
-        centro = np.mean(corners, axis=0)
-        cv2.putText(imagen_visualizacion, f'ID:{i}', 
-                   (int(centro[0])-20, int(centro[1])-10), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
     
-    # Dibujar centros
-    centro1 = np.mean(corners1, axis=0)
-    centro2 = np.mean(corners2, axis=0)
-    cv2.circle(imagen_visualizacion, (int(centro1[0]), int(centro1[1])), 6, color_rojo, -1)
-    cv2.circle(imagen_visualizacion, (int(centro2[0]), int(centro2[1])), 6, color_azul, -1)
-    
-    # Dibujar línea entre centros
-    cv2.line(imagen_visualizacion, 
-             (int(centro1[0]), int(centro1[1])), 
-             (int(centro2[0]), int(centro2[1])), 
-             color_verde, 2)
-    
-    # Dibujar puntos de medición multipunto si están disponibles
-    if puntos_medicion and metodo_usado in ['multipunto', 'filtrado_temporal']:
-        for punto1, punto2 in puntos_medicion:
-            cv2.line(imagen_visualizacion, 
-                     (int(punto1[0]), int(punto1[1])), 
-                     (int(punto2[0]), int(punto2[1])), 
-                     color_naranja, 1)
-    
-    # Dibujar bordes externos si se usó ese método
+    # Dibujar línea de medición (simplificado para velocidad)
     if metodo_usado == 'bordes_externos':
-        edge1 = corners1[np.argmax(corners1[:, 0])]
-        edge2 = corners2[np.argmin(corners2[:, 0])]
+        # Línea entre bordes externos
+        center1 = np.mean(corners1, axis=0)
+        center2 = np.mean(corners2, axis=0)
+        direction = center2 - center1
+        direction_normalized = direction / np.linalg.norm(direction)
+        
+        edge1 = corners1[np.argmax([np.dot(corner - center1, direction_normalized) for corner in corners1])]
+        edge2 = corners2[np.argmax([np.dot(corner - center2, -direction_normalized) for corner in corners2])]
+        
         cv2.line(imagen_visualizacion, 
                  (int(edge1[0]), int(edge1[1])), 
                  (int(edge2[0]), int(edge2[1])), 
-                 color_purpura, 2)
+                 color_purpura, 3)
     
-    # Agregar información de medición
-    info_text = f"Distancia: {distancia_final:.3f}m | Metodo: {metodo_usado} | Confianza: {confianza:.2f}"
-    cv2.putText(imagen_visualizacion, info_text, (10, 30), 
-               cv2.FONT_HERSHEY_SIMPLEX, 0.7, color_amarillo, 2)
+    elif metodo_usado in ['multipunto', 'filtrado_temporal'] and puntos_medicion:
+        # Líneas multipunto (solo la primera para velocidad)
+        punto1, punto2 = puntos_medicion[0]
+        cv2.line(imagen_visualizacion, 
+                 (int(punto1[0]), int(punto1[1])), 
+                 (int(punto2[0]), int(punto2[1])), 
+                 color_naranja, 3)
     
-    # Convertir a base64
-    config = obtener_configuracion()
-    _, buffer = cv2.imencode('.jpg', cv2.cvtColor(imagen_visualizacion, cv2.COLOR_RGB2BGR), 
-                           [cv2.IMWRITE_JPEG_QUALITY, config['COMPRESION_JPEG']])
+    else:
+        # Línea entre centros
+        centro1 = np.mean(corners1, axis=0)
+        centro2 = np.mean(corners2, axis=0)
+        cv2.line(imagen_visualizacion, 
+                 (int(centro1[0]), int(centro1[1])), 
+                 (int(centro2[0]), int(centro2[1])), 
+                 color_verde, 3)
+    
+    # Convertir a base64 con compresión máxima para velocidad
+    _, buffer = cv2.imencode('.jpg', imagen_visualizacion, 
+                           [cv2.IMWRITE_JPEG_QUALITY, 70])  # Compresión máxima
     imagen_base64 = base64.b64encode(buffer).decode('utf-8')
     
     return imagen_base64
@@ -587,7 +567,7 @@ def detectar_aruco():
         image_data = data.get('image')
         TAMANO_REAL_LADO = float(data.get('tamano_lado', 0.05))  # 0.05 m = 5 cm por defecto
         config = obtener_configuracion()
-        generar_visualizacion = data.get('generar_visualizacion', config['GENERAR_VISUALIZACION'])
+        generar_visualizacion = data.get('generar_visualizacion', True)  # Por defecto siempre generar visualización
         
         if not image_data:
             return jsonify({"error": "No se recibió imagen"})

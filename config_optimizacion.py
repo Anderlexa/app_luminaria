@@ -5,14 +5,14 @@ CONFIG_VELOCIDAD = {
     'REDUCIR_IMAGEN': True,  # Reducir imagen si es muy grande
     'MAX_WIDTH': 800,        # Ancho máximo de imagen
     'MAX_HEIGHT': 600,       # Alto máximo de imagen
-    'GENERAR_VISUALIZACION': False,  # Por defecto no generar visualización
-    'COMPRESION_JPEG': 85,   # Calidad de compresión JPEG
+    'GENERAR_VISUALIZACION': True,  # Por defecto generar visualización
+    'COMPRESION_JPEG': 80,   # Calidad de compresión JPEG (más rápida)
     'VENTANA_SUBPIXEL': (3, 3),  # Ventana más pequeña para subpíxel
-    'ITERACIONES_SUBPIXEL': 20,   # Menos iteraciones
+    'ITERACIONES_SUBPIXEL': 15,   # Menos iteraciones
     'PRECISION_SUBPIXEL': 0.001,  # Menos precisa pero más rápida
     'POLYGONAL_ACCURACY': 0.03,   # Menos precisa pero más rápida
     'CORNER_REFINEMENT_WIN_SIZE': 3,  # Ventana más pequeña
-    'CORNER_REFINEMENT_MAX_ITER': 15,  # Menos iteraciones
+    'CORNER_REFINEMENT_MAX_ITER': 10,  # Menos iteraciones
     'CORNER_REFINEMENT_MIN_ACCURACY': 0.02,  # Menos precisa
 }
 
