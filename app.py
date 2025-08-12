@@ -487,7 +487,7 @@ def calcular_escala_precisa(corners, tamano_real_lado):
     metros_por_pixel = tamano_real_lado / lado_px
     return metros_por_pixel, lado_px
 
-def generar_visualizacion_medicion_optimizada(imagen_original, corners1, corners2, puntos_medicion, 
+def generar_visualizacion_medicion_optimizada(imagen_original, corners1, corners2, puntos_visualizacion, 
                                              distancia_final, metodo_usado, confianza, debug_info):
     """
     Genera una visualización ultra-rápida mostrando solo la distancia entre ArUcos.
@@ -508,38 +508,30 @@ def generar_visualizacion_medicion_optimizada(imagen_original, corners1, corners
         corners_int = corners.astype(np.int32)
         cv2.polylines(imagen_visualizacion, [corners_int], True, color, 2)
     
-    # Dibujar línea de medición (simplificado para velocidad)
-    if metodo_usado == 'bordes_externos':
-        # Línea entre bordes externos
-        center1 = np.mean(corners1, axis=0)
-        center2 = np.mean(corners2, axis=0)
-        direction = center2 - center1
-        direction_normalized = direction / np.linalg.norm(direction)
-        
-        edge1 = corners1[np.argmax([np.dot(corner - center1, direction_normalized) for corner in corners1])]
-        edge2 = corners2[np.argmax([np.dot(corner - center2, -direction_normalized) for corner in corners2])]
-        
+    # Dibujar línea de medición usando los puntos exactos calculados
+    if metodo_usado == 'bordes_externos' and puntos_visualizacion:
+        # Usar los bordes externos exactos calculados
+        edge1, edge2 = puntos_visualizacion
         cv2.line(imagen_visualizacion, 
                  (int(edge1[0]), int(edge1[1])), 
                  (int(edge2[0]), int(edge2[1])), 
                  color_purpura, 3)
     
-    elif metodo_usado in ['multipunto', 'filtrado_temporal'] and puntos_medicion:
-        # Líneas multipunto (solo la primera para velocidad)
-        punto1, punto2 = puntos_medicion[0]
-        cv2.line(imagen_visualizacion, 
-                 (int(punto1[0]), int(punto1[1])), 
-                 (int(punto2[0]), int(punto2[1])), 
-                 color_naranja, 3)
+    elif metodo_usado in ['multipunto', 'filtrado_temporal'] and puntos_visualizacion:
+        # Dibujar todas las líneas multipunto
+        for punto1, punto2 in puntos_visualizacion:
+            cv2.line(imagen_visualizacion, 
+                     (int(punto1[0]), int(punto1[1])), 
+                     (int(punto2[0]), int(punto2[1])), 
+                     color_naranja, 2)
     
-    else:
-        # Línea entre centros
-        centro1 = np.mean(corners1, axis=0)
-        centro2 = np.mean(corners2, axis=0)
-        cv2.line(imagen_visualizacion, 
-                 (int(centro1[0]), int(centro1[1])), 
-                 (int(centro2[0]), int(centro2[1])), 
-                 color_verde, 3)
+    elif puntos_visualizacion:
+        # Para otros métodos, usar los puntos calculados
+        for punto1, punto2 in puntos_visualizacion:
+            cv2.line(imagen_visualizacion, 
+                     (int(punto1[0]), int(punto1[1])), 
+                     (int(punto2[0]), int(punto2[1])), 
+                     color_verde, 3)
     
     # Convertir a base64 con compresión máxima para velocidad
     _, buffer = cv2.imencode('.jpg', imagen_visualizacion, 
@@ -548,13 +540,13 @@ def generar_visualizacion_medicion_optimizada(imagen_original, corners1, corners
     
     return imagen_base64
 
-def generar_visualizacion_medicion(imagen_original, corners1, corners2, puntos_medicion, 
+def generar_visualizacion_medicion(imagen_original, corners1, corners2, puntos_visualizacion, 
                                    distancia_final, metodo_usado, confianza, debug_info):
     """
     Wrapper para la visualización optimizada.
     """
     return generar_visualizacion_medicion_optimizada(
-        imagen_original, corners1, corners2, puntos_medicion,
+        imagen_original, corners1, corners2, puntos_visualizacion,
         distancia_final, metodo_usado, confianza, debug_info
     )
 
@@ -678,8 +670,20 @@ def detectar_aruco():
         imagen_base64 = None
         if generar_visualizacion:
             try:
+                # Pasar los puntos exactos calculados para cada método
+                puntos_visualizacion = None
+                if metodo_usado == 'bordes_externos':
+                    puntos_visualizacion = (edge1, edge2)  # Usar los bordes calculados
+                elif metodo_usado in ['multipunto', 'filtrado_temporal']:
+                    puntos_visualizacion = puntos_medicion  # Usar los puntos multipunto
+                else:
+                    # Para otros métodos, usar los centros
+                    centro1 = np.mean(marker1_corners, axis=0)
+                    centro2 = np.mean(marker2_corners, axis=0)
+                    puntos_visualizacion = [(centro1, centro2)]
+                
                 imagen_base64 = generar_visualizacion_medicion(
-                    img, marker1_corners, marker2_corners, puntos_medicion,
+                    img, marker1_corners, marker2_corners, puntos_visualizacion,
                     distancia_final, metodo_usado, confianza, debug_info
                 )
             except Exception as e:
