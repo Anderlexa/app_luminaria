@@ -8,10 +8,230 @@ import numpy as np
 import base64
 from PIL import Image
 import io
+from collections import deque
+import time
 
 # --- Inicialización de la app Flask ---
 app = Flask(__name__)
 CORS(app)  # Permite peticiones desde otros orígenes
+
+# --- Variables globales para filtrado temporal ---
+mediciones_previas = deque(maxlen=10)  # Almacena las últimas 10 mediciones
+ultima_medicion_tiempo = 0
+
+# --- Funciones mejoradas para detección precisa ---
+
+def detectar_esquinas_subpixel(imagen, corners, ventana=(5, 5), zona_muerta=(-1, -1)):
+    """
+    Refina las esquinas detectadas con precisión subpíxel.
+    
+    Args:
+        imagen: Imagen en escala de grises
+        corners: Esquinas detectadas por ArUco
+        ventana: Tamaño de la ventana de búsqueda
+        zona_muerta: Zona muerta para el refinamiento
+    
+    Returns:
+        corners_refinadas: Esquinas con precisión subpíxel
+    """
+    corners_refinadas = []
+    
+    for marker_corners in corners:
+        # Convertir a formato float32 para subpíxel
+        corners_float = np.float32(marker_corners)
+        
+        # Refinar esquinas con precisión subpíxel
+        corners_refinadas_marker = cv2.cornerSubPix(
+            imagen, 
+            corners_float, 
+            ventana, 
+            zona_muerta,
+            criteria=(cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+        )
+        
+        corners_refinadas.append(corners_refinadas_marker)
+    
+    return corners_refinadas
+
+def calcular_distancia_multipunto(corners1, corners2, metros_por_pixel):
+    """
+    Calcula la distancia usando múltiples puntos de referencia para mayor precisión.
+    
+    Args:
+        corners1: Esquinas del primer marcador ArUco
+        corners2: Esquinas del segundo marcador ArUco
+        metros_por_pixel: Factor de conversión
+    
+    Returns:
+        distancia_promedio: Distancia promedio calculada
+        puntos_medicion: Puntos utilizados para la medición
+    """
+    # Calcular centro de masa de cada marcador
+    centro1 = np.mean(corners1, axis=0)
+    centro2 = np.mean(corners2, axis=0)
+    
+    # Calcular distancia entre centros
+    distancia_centros = np.linalg.norm(centro2 - centro1)
+    
+    # Calcular distancias desde múltiples esquinas
+    distancias_esquinas = []
+    puntos_medicion = []
+    
+    # Vector dirección entre centros
+    direccion = centro2 - centro1
+    direccion_normalizada = direccion / np.linalg.norm(direccion)
+    
+    # Para cada esquina del primer marcador, encontrar la esquina más cercana del segundo
+    for i, esquina1 in enumerate(corners1):
+        # Encontrar la esquina del segundo marcador más alejada en la dirección opuesta
+        distancias_proyeccion = []
+        for esquina2 in corners2:
+            # Proyección de la línea entre esquinas en la dirección de los centros
+            vector_esquinas = esquina2 - esquina1
+            proyeccion = np.dot(vector_esquinas, direccion_normalizada)
+            distancias_proyeccion.append(proyeccion)
+        
+        # Usar la esquina con mayor proyección (más alejada)
+        idx_max = np.argmax(distancias_proyeccion)
+        esquina2_seleccionada = corners2[idx_max]
+        
+        # Calcular distancia entre estas esquinas
+        distancia_esquinas = np.linalg.norm(esquina2_seleccionada - esquina1)
+        distancias_esquinas.append(distancia_esquinas)
+        puntos_medicion.append((esquina1, esquina2_seleccionada))
+    
+    # Calcular distancia promedio ponderada
+    # Dar más peso a las mediciones más estables
+    distancias_esquinas = np.array(distancias_esquinas)
+    pesos = 1.0 / (1.0 + np.abs(distancias_esquinas - np.median(distancias_esquinas)))
+    pesos = pesos / np.sum(pesos)
+    
+    distancia_promedio_px = np.sum(distancias_esquinas * pesos)
+    distancia_promedio_metros = distancia_promedio_px * metros_por_pixel
+    
+    return distancia_promedio_metros, puntos_medicion, distancia_centros * metros_por_pixel
+
+def filtrar_mediciones_temporales(nueva_medicion, ventana_tiempo=2.0):
+    """
+    Filtra outliers y promedia mediciones temporales.
+    
+    Args:
+        nueva_medicion: Nueva medición a agregar
+        ventana_tiempo: Ventana de tiempo en segundos para considerar mediciones válidas
+    
+    Returns:
+        medicion_filtrada: Medición filtrada y promediada
+        confianza: Nivel de confianza de la medición
+    """
+    global mediciones_previas, ultima_medicion_tiempo
+    
+    tiempo_actual = time.time()
+    
+    # Limpiar mediciones muy antiguas
+    while mediciones_previas and (tiempo_actual - mediciones_previas[0]['tiempo']) > ventana_tiempo:
+        mediciones_previas.popleft()
+    
+    # Agregar nueva medición
+    mediciones_previas.append({
+        'distancia': nueva_medicion,
+        'tiempo': tiempo_actual
+    })
+    
+    if len(mediciones_previas) < 3:
+        # Si hay pocas mediciones, usar la más reciente
+        return nueva_medicion, 0.5
+    
+    # Extraer distancias
+    distancias = [m['distancia'] for m in mediciones_previas]
+    
+    # Calcular estadísticas
+    media = np.mean(distancias)
+    desviacion = np.std(distancias)
+    
+    # Filtrar outliers (más de 2 desviaciones estándar)
+    distancias_filtradas = [d for d in distancias if abs(d - media) <= 2 * desviacion]
+    
+    if len(distancias_filtradas) == 0:
+        # Si todas son outliers, usar la mediana
+        medicion_filtrada = np.median(distancias)
+        confianza = 0.3
+    else:
+        # Usar promedio de mediciones no-outliers
+        medicion_filtrada = np.mean(distancias_filtradas)
+        # Calcular confianza basada en la consistencia
+        confianza = 1.0 - (desviacion / media) if media > 0 else 0.5
+        confianza = max(0.1, min(1.0, confianza))
+    
+    return medicion_filtrada, confianza
+
+def mejorar_deteccion_aruco(imagen):
+    """
+    Mejora la detección de ArUco con múltiples técnicas.
+    
+    Args:
+        imagen: Imagen de entrada
+    
+    Returns:
+        corners_mejoradas: Esquinas detectadas mejoradas
+        ids: IDs de los marcadores
+    """
+    # Convertir a escala de grises
+    if len(imagen.shape) == 3:
+        gray = cv2.cvtColor(imagen, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = imagen.copy()
+    
+    # Aplicar filtros para mejorar la detección
+    # Filtro Gaussiano para reducir ruido
+    gray_suavizada = cv2.GaussianBlur(gray, (3, 3), 0)
+    
+    # Ecualización de histograma para mejorar contraste
+    gray_ecualizada = cv2.equalizeHist(gray_suavizada)
+    
+    # Configurar detector ArUco con parámetros optimizados
+    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+    aruco_params = cv2.aruco.DetectorParameters()
+    
+    # Parámetros optimizados para mayor precisión
+    aruco_params.adaptiveThreshWinSizeMin = 3
+    aruco_params.adaptiveThreshWinSizeMax = 23
+    aruco_params.adaptiveThreshWinSizeStep = 10
+    aruco_params.adaptiveThreshConstant = 7
+    aruco_params.minMarkerPerimeterRate = 0.03
+    aruco_params.maxMarkerPerimeterRate = 4.0
+    aruco_params.polygonalApproxAccuracyRate = 0.02  # Más preciso
+    aruco_params.minCornerDistanceRate = 0.05
+    aruco_params.minDistanceToBorder = 3
+    aruco_params.minOtsuStdDev = 5.0
+    aruco_params.perspectiveRemovePixelPerCell = 4
+    aruco_params.perspectiveRemoveIgnoredMarginPerCell = 0.13
+    aruco_params.maxErroneousBitsInBorderRate = 0.35
+    
+    # Configurar refinamiento de esquinas si está disponible
+    if hasattr(aruco_params, 'cornerRefinementMethod'):
+        aruco_params.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX
+    if hasattr(aruco_params, 'cornerRefinementWinSize'):
+        aruco_params.cornerRefinementWinSize = 5
+    if hasattr(aruco_params, 'cornerRefinementMaxIterations'):
+        aruco_params.cornerRefinementMaxIterations = 30
+    if hasattr(aruco_params, 'cornerRefinementMinAccuracy'):
+        aruco_params.cornerRefinementMinAccuracy = 0.01
+    
+    # Detectar ArUco
+    detector = cv2.aruco.ArucoDetector(aruco_dict, aruco_params)
+    corners, ids, rejected = detector.detectMarkers(gray_ecualizada)
+    
+    if ids is None or len(ids) < 2:
+        # Intentar con imagen original si falla
+        corners, ids, rejected = detector.detectMarkers(gray)
+    
+    if ids is None or len(ids) < 2:
+        return None, None
+    
+    # Refinar esquinas con precisión subpíxel
+    corners_refinadas = detectar_esquinas_subpixel(gray, corners)
+    
+    return corners_refinadas, ids
 
 # --- Rutas de la app web ---
 @app.route("/")
@@ -111,7 +331,7 @@ def calcular_escala_precisa(corners, tamano_real_lado):
     metros_por_pixel = tamano_real_lado / lado_px
     return metros_por_pixel, lado_px
 
-# --- Ruta para procesar imagen y detectar ArUco ---
+# --- Ruta para procesar imagen y detectar ArUco con precisión mejorada ---
 @app.route("/detectar_aruco", methods=["POST"])
 def detectar_aruco():
     try:
@@ -134,47 +354,11 @@ def detectar_aruco():
         if img is None:
             return jsonify({"error": "No se pudo decodificar la imagen"})
         
-        # Convierte a escala de grises
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        
-        # Configura el detector de ArUco con parámetros compatibles
-        aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
-        aruco_params = cv2.aruco.DetectorParameters()
-        
-        # Parámetros optimizados compatibles con diferentes versiones de OpenCV
-        try:
-            aruco_params.adaptiveThreshWinSizeMin = 3
-            aruco_params.adaptiveThreshWinSizeMax = 23
-            aruco_params.adaptiveThreshWinSizeStep = 10
-            aruco_params.adaptiveThreshConstant = 7
-            aruco_params.minMarkerPerimeterRate = 0.03
-            aruco_params.maxMarkerPerimeterRate = 4.0
-            aruco_params.polygonalApproxAccuracyRate = 0.03
-            aruco_params.minCornerDistanceRate = 0.05
-            aruco_params.minDistanceToBorder = 3
-            aruco_params.minOtsuStdDev = 5.0
-            aruco_params.perspectiveRemovePixelPerCell = 4
-            aruco_params.perspectiveRemoveIgnoredMarginPerCell = 0.13
-            aruco_params.maxErroneousBitsInBorderRate = 0.35
-            
-            # Parámetros que pueden no estar disponibles en todas las versiones
-            if hasattr(aruco_params, 'cornerRefinementMethod'):
-                aruco_params.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX
-            if hasattr(aruco_params, 'cornerRefinementWinSize'):
-                aruco_params.cornerRefinementWinSize = 5
-            if hasattr(aruco_params, 'cornerRefinementMaxIterations'):
-                aruco_params.cornerRefinementMaxIterations = 30
-            if hasattr(aruco_params, 'cornerRefinementMinAccuracy'):
-                aruco_params.cornerRefinementMinAccuracy = 0.01
-        except AttributeError as e:
-            print(f"Advertencia: Algunos parámetros no están disponibles: {e}")
-            # Continuar con parámetros por defecto si algunos no están disponibles
-        
-        detector = cv2.aruco.ArucoDetector(aruco_dict, aruco_params)
-        corners, ids, rejected = detector.detectMarkers(gray)
+        # Usar función mejorada de detección de ArUco
+        corners, ids = mejorar_deteccion_aruco(img)
         
         if ids is None or len(ids) < 2:
-            return jsonify({"error": "Se necesitan al menos 2 códigos ArUco para medir. Asegúrate de que ambos marcadores sean completamente visibles."})
+            return jsonify({"error": "Se necesitan al menos 2 códigos ArUco para medir. Asegúrate de que ambos marcadores sean completamente visibles y estén bien iluminados."})
         
         # Ordenar marcadores por ID para consistencia
         marker_indices = np.argsort(ids.flatten())
@@ -188,37 +372,59 @@ def detectar_aruco():
         # Calcular escala precisa usando el primer marcador
         metros_por_pixel, lado_px = calcular_escala_precisa(marker1_corners, TAMANO_REAL_LADO)
         
-        # Calcular distancia entre bordes externos
+        # Calcular distancia usando método multipunto mejorado
+        distancia_multipunto_metros, puntos_medicion, distancia_centros_metros = calcular_distancia_multipunto(
+            marker1_corners, marker2_corners, metros_por_pixel
+        )
+        
+        # Aplicar filtrado temporal para mayor estabilidad
+        distancia_filtrada, confianza = filtrar_mediciones_temporales(distancia_multipunto_metros)
+        
+        # Calcular también distancia entre bordes externos para comparación
         distancia_bordes_metros, edge1, edge2 = calcular_distancia_entre_bordes(
             marker1_corners, marker2_corners, metros_por_pixel
         )
         
-        # Calcular también distancia entre centros para comparación
-        center1 = np.mean(marker1_corners, axis=0)
-        center2 = np.mean(marker2_corners, axis=0)
-        distancia_centros_px = np.linalg.norm(center2 - center1)
-        distancia_centros_metros = distancia_centros_px * metros_por_pixel
+        # Área del cuadrado usando la distancia filtrada
+        area = distancia_filtrada * distancia_filtrada
         
-        # Área del cuadrado usando la distancia entre bordes
-        area = distancia_bordes_metros * distancia_bordes_metros
-        
-        # Información adicional para debugging
+        # Información adicional para debugging y análisis
         debug_info = {
             "lado_px": float(lado_px),
             "metros_por_pixel": float(metros_por_pixel),
             "distancia_centros_metros": float(distancia_centros_metros),
+            "distancia_bordes_metros": float(distancia_bordes_metros),
+            "distancia_multipunto_metros": float(distancia_multipunto_metros),
+            "distancia_filtrada_metros": float(distancia_filtrada),
+            "confianza_medicion": float(confianza),
+            "num_mediciones_previas": len(mediciones_previas),
             "diferencia_centros_bordes": float(distancia_centros_metros - distancia_bordes_metros),
-            "ids_detectados": ids.flatten().tolist()
+            "diferencia_multipunto_bordes": float(distancia_multipunto_metros - distancia_bordes_metros),
+            "ids_detectados": ids.flatten().tolist(),
+            "num_puntos_medicion": len(puntos_medicion)
         }
         
-        # Devuelve los resultados al frontend
+        # Determinar qué distancia usar basado en la confianza
+        if confianza > 0.7:
+            distancia_final = distancia_filtrada
+            metodo_usado = "filtrado_temporal"
+        elif confianza > 0.5:
+            distancia_final = distancia_multipunto_metros
+            metodo_usado = "multipunto"
+        else:
+            distancia_final = distancia_bordes_metros
+            metodo_usado = "bordes_externos"
+        
+        # Devuelve los resultados al frontend con información mejorada
         return jsonify({
             "success": True,
-            "distancia": round(float(distancia_bordes_metros), 3),
+            "distancia": round(float(distancia_final), 3),
             "area": round(float(area), 2),
             "distancia_detectada_px": round(float(np.linalg.norm(edge2 - edge1)), 2),
             "metros_por_pixel": float(metros_por_pixel),
             "tamano_lado": TAMANO_REAL_LADO,
+            "confianza": round(float(confianza), 2),
+            "metodo_usado": metodo_usado,
             "debug_info": debug_info
         })
         

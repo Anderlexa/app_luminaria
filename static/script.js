@@ -397,6 +397,8 @@ async function detectarArUcoTiempoReal(imageData, tamanoLado) {
       // Mostrar resultados principales
       document.getElementById('distanciaDetectada').textContent = data.distancia;
       document.getElementById('areaDetectada').textContent = data.area;
+      document.getElementById('confianzaMedicion').textContent = (data.confianza * 100).toFixed(1) + '%';
+      document.getElementById('metodoUsado').textContent = traducirMetodo(data.metodo_usado);
       document.getElementById('measurementResults').style.display = 'block';
       
       // Mostrar información técnica si está disponible
@@ -404,14 +406,21 @@ async function detectarArUcoTiempoReal(imageData, tamanoLado) {
         document.getElementById('ladoPx').textContent = data.debug_info.lado_px.toFixed(2);
         document.getElementById('metrosPorPixel').textContent = data.debug_info.metros_por_pixel.toFixed(6);
         document.getElementById('distanciaCentros').textContent = data.debug_info.distancia_centros_metros.toFixed(3);
+        document.getElementById('distanciaMultipunto').textContent = data.debug_info.distancia_multipunto_metros.toFixed(3);
+        document.getElementById('distanciaFiltrada').textContent = data.debug_info.distancia_filtrada_metros.toFixed(3);
+        document.getElementById('numMedicionesPrevias').textContent = data.debug_info.num_mediciones_previas;
+        document.getElementById('numPuntosMedicion').textContent = data.debug_info.num_puntos_medicion;
         document.getElementById('diferenciaCentrosBordes').textContent = data.debug_info.diferencia_centros_bordes.toFixed(3);
+        document.getElementById('diferenciaMultipuntoBordes').textContent = data.debug_info.diferencia_multipunto_bordes.toFixed(3);
         document.getElementById('idsDetectados').textContent = data.debug_info.ids_detectados.join(', ');
       }
       
       // Llenar campo manual automáticamente
       document.getElementById('distancia').value = data.distancia;
       
-      mostrarStatus(`Distancia medida (bordes externos): ${data.distancia} m | Área: ${data.area} m²`, "success");
+      // Mostrar mensaje con información de confianza
+      const mensajeConfianza = data.confianza > 0.8 ? "alta" : data.confianza > 0.6 ? "media" : "baja";
+      mostrarStatus(`Distancia medida: ${data.distancia} m | Área: ${data.area} m² | Confianza: ${mensajeConfianza}`, "success");
       
       // Detener cámara automáticamente después de 2 segundos
       setTimeout(() => {
@@ -422,6 +431,16 @@ async function detectarArUcoTiempoReal(imageData, tamanoLado) {
   } catch (error) {
     mostrarStatus("Error al procesar la imagen en el servidor.", "error");
   }
+}
+
+// --- Función para traducir métodos de medición ---
+function traducirMetodo(metodo) {
+  const traducciones = {
+    'filtrado_temporal': 'Filtrado Temporal (Alta Precisión)',
+    'multipunto': 'Múltiples Puntos',
+    'bordes_externos': 'Bordes Externos'
+  };
+  return traducciones[metodo] || metodo;
 }
 
 // --- Muestra mensajes de estado en la interfaz ---
