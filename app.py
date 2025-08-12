@@ -2,6 +2,7 @@
 from flask import Flask, request, jsonify, render_template, url_for
 from flask_cors import CORS
 from calcular_luminarias import calcular_y_generar_imagen
+from config_optimizacion import obtener_configuracion, cambiar_configuracion
 import os
 import cv2
 import numpy as np
@@ -25,9 +26,9 @@ ultima_medicion_tiempo = 0
 
 # --- Funciones mejoradas para detección precisa ---
 
-def detectar_esquinas_subpixel(imagen, corners, ventana=(5, 5), zona_muerta=(-1, -1)):
+def detectar_esquinas_subpixel(imagen, corners, ventana=None, zona_muerta=(-1, -1)):
     """
-    Refina las esquinas detectadas con precisión subpíxel mejorada.
+    Refina las esquinas detectadas con precisión subpíxel (optimizada para velocidad).
     
     Args:
         imagen: Imagen en escala de grises
@@ -38,31 +39,25 @@ def detectar_esquinas_subpixel(imagen, corners, ventana=(5, 5), zona_muerta=(-1,
     Returns:
         corners_refinadas: Esquinas con precisión subpíxel
     """
+    config = obtener_configuracion()
+    if ventana is None:
+        ventana = config['VENTANA_SUBPIXEL']
+    
     corners_refinadas = []
     
     for marker_corners in corners:
         # Convertir a formato float32 para subpíxel
         corners_float = np.float32(marker_corners)
         
-        # Aplicar múltiples iteraciones de refinamiento para mayor precisión
-        corners_refinadas_marker = corners_float.copy()
-        
-        # Primera iteración con ventana más grande
+        # Una sola iteración para mayor velocidad
         corners_refinadas_marker = cv2.cornerSubPix(
             imagen, 
-            corners_refinadas_marker, 
-            (7, 7), 
-            zona_muerta,
-            criteria=(cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 50, 0.0001)
-        )
-        
-        # Segunda iteración con ventana más pequeña para precisión final
-        corners_refinadas_marker = cv2.cornerSubPix(
-            imagen, 
-            corners_refinadas_marker, 
+            corners_float, 
             ventana, 
             zona_muerta,
-            criteria=(cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 100, 0.00001)
+            criteria=(cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 
+                     config['ITERACIONES_SUBPIXEL'], 
+                     config['PRECISION_SUBPIXEL'])
         )
         
         corners_refinadas.append(corners_refinadas_marker)
@@ -299,7 +294,7 @@ def filtrar_mediciones_temporales(nueva_medicion, ventana_tiempo=2.0):
 
 def mejorar_deteccion_aruco(imagen):
     """
-    Mejora la detección de ArUco con múltiples técnicas.
+    Mejora la detección de ArUco con múltiples técnicas (optimizada para velocidad).
     
     Args:
         imagen: Imagen de entrada
@@ -314,25 +309,33 @@ def mejorar_deteccion_aruco(imagen):
     else:
         gray = imagen.copy()
     
-    # Aplicar filtros para mejorar la detección
-    # Filtro Gaussiano para reducir ruido
+    # Reducir tamaño de imagen para mayor velocidad (si es muy grande)
+    config = obtener_configuracion()
+    if config['REDUCIR_IMAGEN']:
+        height, width = gray.shape
+        if width > config['MAX_WIDTH'] or height > config['MAX_HEIGHT']:
+            scale_factor = min(config['MAX_WIDTH']/width, config['MAX_HEIGHT']/height)
+            new_width = int(width * scale_factor)
+            new_height = int(height * scale_factor)
+            gray = cv2.resize(gray, (new_width, new_height))
+    
+    # Aplicar filtros para mejorar la detección (optimizados)
+    # Filtro Gaussiano más pequeño para mayor velocidad
     gray_suavizada = cv2.GaussianBlur(gray, (3, 3), 0)
     
-    # Ecualización de histograma para mejorar contraste
-    gray_ecualizada = cv2.equalizeHist(gray_suavizada)
-    
-    # Configurar detector ArUco con parámetros optimizados
+    # Configurar detector ArUco con parámetros optimizados para velocidad
     aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
     aruco_params = cv2.aruco.DetectorParameters()
     
-    # Parámetros optimizados para mayor precisión
+    # Parámetros optimizados para velocidad y precisión balanceada
+    config = obtener_configuracion()
     aruco_params.adaptiveThreshWinSizeMin = 3
     aruco_params.adaptiveThreshWinSizeMax = 23
     aruco_params.adaptiveThreshWinSizeStep = 10
     aruco_params.adaptiveThreshConstant = 7
     aruco_params.minMarkerPerimeterRate = 0.03
     aruco_params.maxMarkerPerimeterRate = 4.0
-    aruco_params.polygonalApproxAccuracyRate = 0.02  # Más preciso
+    aruco_params.polygonalApproxAccuracyRate = config['POLYGONAL_ACCURACY']
     aruco_params.minCornerDistanceRate = 0.05
     aruco_params.minDistanceToBorder = 3
     aruco_params.minOtsuStdDev = 5.0
@@ -340,19 +343,19 @@ def mejorar_deteccion_aruco(imagen):
     aruco_params.perspectiveRemoveIgnoredMarginPerCell = 0.13
     aruco_params.maxErroneousBitsInBorderRate = 0.35
     
-    # Configurar refinamiento de esquinas si está disponible
+    # Configurar refinamiento de esquinas (reducido para velocidad)
     if hasattr(aruco_params, 'cornerRefinementMethod'):
         aruco_params.cornerRefinementMethod = cv2.aruco.CORNER_REFINE_SUBPIX
     if hasattr(aruco_params, 'cornerRefinementWinSize'):
-        aruco_params.cornerRefinementWinSize = 5
+        aruco_params.cornerRefinementWinSize = config['CORNER_REFINEMENT_WIN_SIZE']
     if hasattr(aruco_params, 'cornerRefinementMaxIterations'):
-        aruco_params.cornerRefinementMaxIterations = 30
+        aruco_params.cornerRefinementMaxIterations = config['CORNER_REFINEMENT_MAX_ITER']
     if hasattr(aruco_params, 'cornerRefinementMinAccuracy'):
-        aruco_params.cornerRefinementMinAccuracy = 0.01
+        aruco_params.cornerRefinementMinAccuracy = config['CORNER_REFINEMENT_MIN_ACCURACY']
     
     # Detectar ArUco
     detector = cv2.aruco.ArucoDetector(aruco_dict, aruco_params)
-    corners, ids, rejected = detector.detectMarkers(gray_ecualizada)
+    corners, ids, rejected = detector.detectMarkers(gray_suavizada)
     
     if ids is None or len(ids) < 2:
         # Intentar con imagen original si falla
@@ -361,7 +364,7 @@ def mejorar_deteccion_aruco(imagen):
     if ids is None or len(ids) < 2:
         return None, None
     
-    # Refinar esquinas con precisión subpíxel
+    # Refinar esquinas con precisión subpíxel (solo si es necesario)
     corners_refinadas = detectar_esquinas_subpixel(gray, corners)
     
     return corners_refinadas, ids
@@ -378,6 +381,26 @@ def privacy():
 @app.route("/terms")
 def terms():
     return render_template("terms.html")
+
+@app.route("/configuracion", methods=["POST"])
+def cambiar_configuracion_route():
+    """
+    Ruta para cambiar la configuración de optimización.
+    """
+    try:
+        data = request.get_json()
+        tipo = data.get('tipo', 'velocidad')  # 'velocidad' o 'precision'
+        
+        cambiar_configuracion(tipo)
+        config_actual = obtener_configuracion()
+        
+        return jsonify({
+            "success": True,
+            "mensaje": f"Configuración cambiada a: {tipo}",
+            "configuracion": config_actual
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 # --- Ruta para calcular luminarias ---
 @app.route("/generar")
@@ -464,124 +487,96 @@ def calcular_escala_precisa(corners, tamano_real_lado):
     metros_por_pixel = tamano_real_lado / lado_px
     return metros_por_pixel, lado_px
 
-def generar_visualizacion_medicion(imagen_original, corners1, corners2, puntos_medicion, 
-                                  distancia_final, metodo_usado, confianza, debug_info):
+def generar_visualizacion_medicion_optimizada(imagen_original, corners1, corners2, puntos_medicion, 
+                                             distancia_final, metodo_usado, confianza, debug_info):
     """
-    Genera una visualización que muestra cómo se realizó la medición.
-    
-    Args:
-        imagen_original: Imagen original capturada
-        corners1: Esquinas del primer marcador ArUco
-        corners2: Esquinas del segundo marcador ArUco
-        puntos_medicion: Puntos utilizados para la medición multipunto
-        distancia_final: Distancia final calculada
-        metodo_usado: Método utilizado para el cálculo
-        confianza: Nivel de confianza de la medición
-        debug_info: Información adicional de debug
-    
-    Returns:
-        imagen_visualizacion: Imagen con la visualización del método
+    Genera una visualización optimizada usando OpenCV en lugar de matplotlib.
+    Es mucho más rápida y eficiente.
     """
-    # Convertir imagen BGR a RGB para matplotlib
-    if len(imagen_original.shape) == 3:
-        imagen_rgb = cv2.cvtColor(imagen_original, cv2.COLOR_BGR2RGB)
-    else:
-        imagen_rgb = imagen_original
+    # Crear una copia de la imagen para dibujar
+    imagen_visualizacion = imagen_original.copy()
     
-    # Crear figura con subplots
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
+    # Convertir BGR a RGB si es necesario
+    if len(imagen_visualizacion.shape) == 3:
+        imagen_visualizacion = cv2.cvtColor(imagen_visualizacion, cv2.COLOR_BGR2RGB)
     
-    # Subplot 1: Visualización de marcadores y medición
-    ax1.imshow(imagen_rgb)
-    ax1.set_title('Detección de Marcadores ArUco y Medición', fontsize=14, fontweight='bold')
+    # Colores para los marcadores
+    color_rojo = (255, 0, 0)
+    color_azul = (0, 0, 255)
+    color_verde = (0, 255, 0)
+    color_naranja = (255, 165, 0)
+    color_purpura = (128, 0, 128)
+    color_amarillo = (255, 255, 0)
     
     # Dibujar marcadores
     for i, corners in enumerate([corners1, corners2]):
-        color = 'red' if i == 0 else 'blue'
+        color = color_rojo if i == 0 else color_azul
+        
         # Dibujar esquinas
-        ax1.plot(corners[:, 0], corners[:, 1], 'o', color=color, markersize=8, label=f'Marcador {i+1}')
+        for corner in corners:
+            cv2.circle(imagen_visualizacion, (int(corner[0]), int(corner[1])), 4, color, -1)
+        
         # Dibujar contorno del marcador
-        corners_closed = np.vstack([corners, corners[0]])  # Cerrar el polígono
-        ax1.plot(corners_closed[:, 0], corners_closed[:, 1], '-', color=color, linewidth=2)
+        corners_int = corners.astype(np.int32)
+        cv2.polylines(imagen_visualizacion, [corners_int], True, color, 2)
+        
+        # Agregar ID del marcador
+        centro = np.mean(corners, axis=0)
+        cv2.putText(imagen_visualizacion, f'ID:{i}', 
+                   (int(centro[0])-20, int(centro[1])-10), 
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
     
-    # Dibujar centros de los marcadores
+    # Dibujar centros
     centro1 = np.mean(corners1, axis=0)
     centro2 = np.mean(corners2, axis=0)
-    ax1.plot(centro1[0], centro1[1], 's', color='darkred', markersize=10, label='Centro Marcador 1')
-    ax1.plot(centro2[0], centro2[1], 's', color='darkblue', markersize=10, label='Centro Marcador 2')
+    cv2.circle(imagen_visualizacion, (int(centro1[0]), int(centro1[1])), 6, color_rojo, -1)
+    cv2.circle(imagen_visualizacion, (int(centro2[0]), int(centro2[1])), 6, color_azul, -1)
     
     # Dibujar línea entre centros
-    ax1.plot([centro1[0], centro2[0]], [centro1[1], centro2[1]], '--', color='green', linewidth=3, label='Distancia entre Centros')
+    cv2.line(imagen_visualizacion, 
+             (int(centro1[0]), int(centro1[1])), 
+             (int(centro2[0]), int(centro2[1])), 
+             color_verde, 2)
     
     # Dibujar puntos de medición multipunto si están disponibles
     if puntos_medicion and metodo_usado in ['multipunto', 'filtrado_temporal']:
         for punto1, punto2 in puntos_medicion:
-            ax1.plot([punto1[0], punto2[0]], [punto1[1], punto2[1]], '-', color='orange', linewidth=1, alpha=0.7)
+            cv2.line(imagen_visualizacion, 
+                     (int(punto1[0]), int(punto1[1])), 
+                     (int(punto2[0]), int(punto2[1])), 
+                     color_naranja, 1)
     
     # Dibujar bordes externos si se usó ese método
     if metodo_usado == 'bordes_externos':
         edge1 = corners1[np.argmax(corners1[:, 0])]
         edge2 = corners2[np.argmin(corners2[:, 0])]
-        ax1.plot([edge1[0], edge2[0]], [edge1[1], edge2[1]], '-', color='purple', linewidth=3, label='Distancia entre Bordes')
+        cv2.line(imagen_visualizacion, 
+                 (int(edge1[0]), int(edge1[1])), 
+                 (int(edge2[0]), int(edge2[1])), 
+                 color_purpura, 2)
     
-    ax1.legend(loc='upper right')
-    ax1.set_xlabel('Píxeles X')
-    ax1.set_ylabel('Píxeles Y')
-    ax1.grid(True, alpha=0.3)
+    # Agregar información de medición
+    info_text = f"Distancia: {distancia_final:.3f}m | Metodo: {metodo_usado} | Confianza: {confianza:.2f}"
+    cv2.putText(imagen_visualizacion, info_text, (10, 30), 
+               cv2.FONT_HERSHEY_SIMPLEX, 0.7, color_amarillo, 2)
     
-    # Subplot 2: Información técnica y métricas
-    ax2.axis('off')
+    # Convertir a base64
+    config = obtener_configuracion()
+    _, buffer = cv2.imencode('.jpg', cv2.cvtColor(imagen_visualizacion, cv2.COLOR_RGB2BGR), 
+                           [cv2.IMWRITE_JPEG_QUALITY, config['COMPRESION_JPEG']])
+    imagen_base64 = base64.b64encode(buffer).decode('utf-8')
     
-    # Crear tabla con información técnica
-    info_text = f"""
-    📊 INFORMACIÓN DE MEDICIÓN
-    
-    📏 Distancia Final: {distancia_final:.3f} metros
-    🎯 Método Utilizado: {metodo_usado.replace('_', ' ').title()}
-    ✅ Confianza: {confianza:.2f} ({confianza*100:.0f}%)
-    
-    📈 MÉTRICAS TÉCNICAS:
-    • Metros por píxel: {debug_info.get('metros_por_pixel', 0):.6f}
-    • Distancia entre centros: {debug_info.get('distancia_centros_metros', 0):.3f} m
-    • Distancia entre bordes: {debug_info.get('distancia_bordes_metros', 0):.3f} m
-    • Distancia multipunto: {debug_info.get('distancia_multipunto_metros', 0):.3f} m
-    • Número de puntos de medición: {debug_info.get('num_puntos_medicion', 0)}
-    • Mediciones previas: {debug_info.get('num_mediciones_previas', 0)}
-    
-    🔍 DIFERENCIAS:
-    • Centros vs Bordes: {debug_info.get('diferencia_centros_bordes', 0):.3f} m
-    • Multipunto vs Bordes: {debug_info.get('diferencia_multipunto_bordes', 0):.3f} m
-    
-    🆔 IDs Detectados: {debug_info.get('ids_detectados', [])}
+    return imagen_base64
+
+def generar_visualizacion_medicion(imagen_original, corners1, corners2, puntos_medicion, 
+                                   distancia_final, metodo_usado, confianza, debug_info):
     """
-    
-    ax2.text(0.05, 0.95, info_text, transform=ax2.transAxes, fontsize=11,
-             verticalalignment='top', fontfamily='monospace',
-             bbox=dict(boxstyle="round,pad=0.5", facecolor="lightblue", alpha=0.8))
-    
-    # Agregar leyenda de colores
-    leyenda_colores = """
-    🎨 LEYENDA DE COLORES:
-    🔴 Rojo: Marcador ArUco 1
-    🔵 Azul: Marcador ArUco 2
-    🟢 Verde: Distancia entre centros
-    🟠 Naranja: Puntos de medición multipunto
-    🟣 Púrpura: Distancia entre bordes externos
+    Wrapper para la visualización optimizada.
     """
-    
-    ax2.text(0.05, 0.3, leyenda_colores, transform=ax2.transAxes, fontsize=10,
-             verticalalignment='top', fontfamily='monospace',
-             bbox=dict(boxstyle="round,pad=0.5", facecolor="lightgreen", alpha=0.8))
-    
-    plt.tight_layout()
-    
-    # Convertir figura a imagen
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', dpi=150, bbox_inches='tight')
-    buf.seek(0)
-    plt.close()
-    
-    return buf
+    return generar_visualizacion_medicion_optimizada(
+        imagen_original, corners1, corners2, puntos_medicion,
+        distancia_final, metodo_usado, confianza, debug_info
+    )
 
 # --- Ruta para procesar imagen y detectar ArUco con precisión mejorada ---
 @app.route("/detectar_aruco", methods=["POST"])
@@ -591,6 +586,8 @@ def detectar_aruco():
         data = request.get_json()
         image_data = data.get('image')
         TAMANO_REAL_LADO = float(data.get('tamano_lado', 0.05))  # 0.05 m = 5 cm por defecto
+        config = obtener_configuracion()
+        generar_visualizacion = data.get('generar_visualizacion', config['GENERAR_VISUALIZACION'])
         
         if not image_data:
             return jsonify({"error": "No se recibió imagen"})
@@ -697,20 +694,17 @@ def detectar_aruco():
             distancia_final = distancia_bordes_metros
             metodo_usado = "bordes_externos"
         
-        # Generar visualización del método de medición
-        try:
-            imagen_visualizacion = generar_visualizacion_medicion(
-                img, marker1_corners, marker2_corners, puntos_medicion,
-                distancia_final, metodo_usado, confianza, debug_info
-            )
-            
-            # Convertir la imagen de visualización a base64
-            imagen_visualizacion.seek(0)
-            imagen_base64 = base64.b64encode(imagen_visualizacion.read()).decode('utf-8')
-            imagen_visualizacion.close()
-        except Exception as e:
-            print(f"Error generando visualización: {str(e)}")
-            imagen_base64 = None
+        # Generar visualización del método de medición (solo si se solicita)
+        imagen_base64 = None
+        if generar_visualizacion:
+            try:
+                imagen_base64 = generar_visualizacion_medicion(
+                    img, marker1_corners, marker2_corners, puntos_medicion,
+                    distancia_final, metodo_usado, confianza, debug_info
+                )
+            except Exception as e:
+                print(f"Error generando visualización: {str(e)}")
+                imagen_base64 = None
         
         # Devuelve los resultados al frontend con información mejorada
         return jsonify({
