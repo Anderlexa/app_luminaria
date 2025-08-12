@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Calculadora de Luminarias - Precisión Mejorada</title>
+  <title>CALCULADORA DE LUMINARIAS</title>
 
   <!-- ✅ SDK FaceIO cargado en el <head> -->
   <script src="https://cdn.faceio.net/fio.js" defer></script>
@@ -19,22 +19,14 @@
 
   <!-- Contenedor principal de la app -->
   <div class="container">
-    <h1>💡 Calculadora de Luminarias - Precisión Mejorada</h1>
+    <h1>CALCULADORA DE LUMINARIAS</h1>
 
     <!-- Formulario principal -->
     <div class="form">
       <!-- Sección de cámara para medición automática -->
       <div class="camera-section">
-        <h3>📷 Medición Automática con Cámara - Precisión Mejorada</h3>
-        <div class="precision-info">
-          <h4>🎯 Mejoras de Precisión Implementadas:</h4>
-          <ul>
-            <li><strong>Medición desde Bordes Externos:</strong> Mayor precisión que medir desde centros</li>
-            <li><strong>Detección Optimizada:</strong> Parámetros mejorados para estabilidad</li>
-            <li><strong>Filtrado de Outliers:</strong> Elimina mediciones erróneas</li>
-            <li><strong>Refinamiento de Esquinas:</strong> Precisión subpíxel</li>
-          </ul>
-        </div>
+        <h3>📷 Medición Automática con Cámara</h3>
+
         <p class="instructions">
           <strong>Instrucciones Mejoradas:</strong><br>
           1. Coloca dos códigos ArUco en el espacio a medir<br>
@@ -60,7 +52,7 @@
         </div>
         <!-- Resultados de la medición automática -->
         <div class="measurement-results" id="measurementResults" style="display:none;">
-          <h4>📏 Resultados de Medición Mejorada:</h4>
+          <h4>📏 Resultados de Medición:</h4>
           <p><strong>Distancia detectada:</strong> <span id="distanciaDetectada">-</span> m</p>
           <p><strong>Área calculada:</strong> <span id="areaDetectada">-</span> m²</p>
           <p><strong>Confianza de medición:</strong> <span id="confianzaMedicion">-</span></p>
@@ -96,14 +88,13 @@
             <div class="visualization-legend">
               <h6>🎨 Leyenda de la Visualización:</h6>
               <ul>
-                <li><span style="color: red;">🔴</span> Marcador ArUco 1 (esquinas y contorno)</li>
-                <li><span style="color: blue;">🔵</span> Marcador ArUco 2 (esquinas y contorno)</li>
-                <li><span style="color: darkred;">🟤</span> Centro del Marcador 1</li>
-                <li><span style="color: darkblue;">🟦</span> Centro del Marcador 2</li>
-                <li><span style="color: green;">🟢</span> Distancia entre centros</li>
-                <li><span style="color: orange;">🟠</span> Puntos de medición multipunto</li>
-                <li><span style="color: purple;">🟣</span> Distancia entre bordes externos</li>
+                <li><span style="color: #ff0000;">🔴</span> Marcador ArUco 1 (contorno rojo)</li>
+                <li><span style="color: #0000ff;">🔵</span> Marcador ArUco 2 (contorno azul)</li>
+                <li><span style="color: #00ff00;">🟢</span> Línea de medición entre centros (verde)</li>
+                <li><span style="color: #ffa500;">🟠</span> Líneas de medición multipunto (naranja)</li>
+                <li><span style="color: #800080;">🟣</span> Línea de medición entre bordes externos (púrpura)</li>
               </ul>
+              <p><em><strong>Nota:</strong> Solo se muestra la línea del método seleccionado automáticamente según la precisión detectada.</em></p>
             </div>
           </div>
           
@@ -164,7 +155,7 @@
   <footer class="footer">
     <hr class="divider" />
     <p>👥 Autores: <strong>Grupo 2</strong> – Changoluisa, Sandoval, Mensias, Taipicaña, Hernandez</p>
-    <p>🎯 Versión con precisión mejorada - Medición desde bordes externos</p>
+            <p>🎯 Versión con medición automática desde bordes externos</p>
   </footer>
 </body>
 </html>
