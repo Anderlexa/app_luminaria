@@ -85,6 +85,32 @@
           <button id="btnToggleDebug" onclick="toggleDebugInfo()" style="margin-top: 10px; padding: 5px 10px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer;">
             🔧 Mostrar Información Técnica
           </button>
+          
+          <!-- Visualización del método de medición -->
+          <div class="visualization-section" id="visualizationSection" style="display:none; margin-top: 20px;">
+            <h5>📊 Visualización del Método de Medición</h5>
+            <p><em>Esta imagen muestra cómo se realizó la medición y qué puntos se utilizaron para el cálculo.</em></p>
+            <div class="visualization-container">
+              <img id="visualizationImage" src="" alt="Visualización del método de medición" style="max-width: 100%; height: auto; border: 2px solid #ddd; border-radius: 8px;" />
+            </div>
+            <div class="visualization-legend">
+              <h6>🎨 Leyenda de la Visualización:</h6>
+              <ul>
+                <li><span style="color: red;">🔴</span> Marcador ArUco 1 (esquinas y contorno)</li>
+                <li><span style="color: blue;">🔵</span> Marcador ArUco 2 (esquinas y contorno)</li>
+                <li><span style="color: darkred;">🟤</span> Centro del Marcador 1</li>
+                <li><span style="color: darkblue;">🟦</span> Centro del Marcador 2</li>
+                <li><span style="color: green;">🟢</span> Distancia entre centros</li>
+                <li><span style="color: orange;">🟠</span> Puntos de medición multipunto</li>
+                <li><span style="color: purple;">🟣</span> Distancia entre bordes externos</li>
+              </ul>
+            </div>
+          </div>
+          
+          <!-- Botón para mostrar/ocultar visualización -->
+          <button id="btnToggleVisualization" onclick="toggleVisualization()" style="margin-top: 10px; padding: 5px 10px; background: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer;">
+            📊 Mostrar Visualización del Método
+          </button>
         </div>
       </div>
 

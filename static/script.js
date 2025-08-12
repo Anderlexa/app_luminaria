@@ -422,6 +422,14 @@ async function detectarArUcoTiempoReal(imageData, tamanoLado) {
       const mensajeConfianza = data.confianza > 0.8 ? "alta" : data.confianza > 0.6 ? "media" : "baja";
       mostrarStatus(`Distancia medida: ${data.distancia} m | Área: ${data.area} m² | Confianza: ${mensajeConfianza}`, "success");
       
+      // Mostrar visualización si está disponible
+      if (data.visualizacion) {
+        const visualizationImage = document.getElementById('visualizationImage');
+        visualizationImage.src = 'data:image/png;base64,' + data.visualizacion;
+        document.getElementById('visualizationSection').style.display = 'block';
+        document.getElementById('btnToggleVisualization').textContent = '📊 Ocultar Visualización del Método';
+      }
+      
       // Detener cámara automáticamente después de 2 segundos
       setTimeout(() => {
         detenerCamara();
@@ -449,6 +457,20 @@ function mostrarStatus(mensaje, tipo) {
   statusElement.textContent = mensaje;
   statusElement.className = `status-message ${tipo}`;
 }
+
+// --- Función para mostrar/ocultar visualización del método de medición ---
+window.toggleVisualization = function() {
+  const visualizationSection = document.getElementById('visualizationSection');
+  const btnToggle = document.getElementById('btnToggleVisualization');
+  
+  if (visualizationSection.style.display === 'none' || visualizationSection.style.display === '') {
+    visualizationSection.style.display = 'block';
+    btnToggle.textContent = '📊 Ocultar Visualización del Método';
+  } else {
+    visualizationSection.style.display = 'none';
+    btnToggle.textContent = '📊 Mostrar Visualización del Método';
+  }
+};
 
 // 💡 Calcular luminarias
 window.calcularLuminarias = function () {

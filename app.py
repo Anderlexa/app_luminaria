@@ -10,6 +10,10 @@ from PIL import Image
 import io
 from collections import deque
 import time
+import matplotlib
+matplotlib.use('Agg')  # Backend no interactivo para servidor
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
 # --- Inicialización de la app Flask ---
 app = Flask(__name__)
@@ -331,6 +335,125 @@ def calcular_escala_precisa(corners, tamano_real_lado):
     metros_por_pixel = tamano_real_lado / lado_px
     return metros_por_pixel, lado_px
 
+def generar_visualizacion_medicion(imagen_original, corners1, corners2, puntos_medicion, 
+                                  distancia_final, metodo_usado, confianza, debug_info):
+    """
+    Genera una visualización que muestra cómo se realizó la medición.
+    
+    Args:
+        imagen_original: Imagen original capturada
+        corners1: Esquinas del primer marcador ArUco
+        corners2: Esquinas del segundo marcador ArUco
+        puntos_medicion: Puntos utilizados para la medición multipunto
+        distancia_final: Distancia final calculada
+        metodo_usado: Método utilizado para el cálculo
+        confianza: Nivel de confianza de la medición
+        debug_info: Información adicional de debug
+    
+    Returns:
+        imagen_visualizacion: Imagen con la visualización del método
+    """
+    # Convertir imagen BGR a RGB para matplotlib
+    if len(imagen_original.shape) == 3:
+        imagen_rgb = cv2.cvtColor(imagen_original, cv2.COLOR_BGR2RGB)
+    else:
+        imagen_rgb = imagen_original
+    
+    # Crear figura con subplots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
+    
+    # Subplot 1: Visualización de marcadores y medición
+    ax1.imshow(imagen_rgb)
+    ax1.set_title('Detección de Marcadores ArUco y Medición', fontsize=14, fontweight='bold')
+    
+    # Dibujar marcadores
+    for i, corners in enumerate([corners1, corners2]):
+        color = 'red' if i == 0 else 'blue'
+        # Dibujar esquinas
+        ax1.plot(corners[:, 0], corners[:, 1], 'o', color=color, markersize=8, label=f'Marcador {i+1}')
+        # Dibujar contorno del marcador
+        corners_closed = np.vstack([corners, corners[0]])  # Cerrar el polígono
+        ax1.plot(corners_closed[:, 0], corners_closed[:, 1], '-', color=color, linewidth=2)
+    
+    # Dibujar centros de los marcadores
+    centro1 = np.mean(corners1, axis=0)
+    centro2 = np.mean(corners2, axis=0)
+    ax1.plot(centro1[0], centro1[1], 's', color='darkred', markersize=10, label='Centro Marcador 1')
+    ax1.plot(centro2[0], centro2[1], 's', color='darkblue', markersize=10, label='Centro Marcador 2')
+    
+    # Dibujar línea entre centros
+    ax1.plot([centro1[0], centro2[0]], [centro1[1], centro2[1]], '--', color='green', linewidth=3, label='Distancia entre Centros')
+    
+    # Dibujar puntos de medición multipunto si están disponibles
+    if puntos_medicion and metodo_usado in ['multipunto', 'filtrado_temporal']:
+        for punto1, punto2 in puntos_medicion:
+            ax1.plot([punto1[0], punto2[0]], [punto1[1], punto2[1]], '-', color='orange', linewidth=1, alpha=0.7)
+    
+    # Dibujar bordes externos si se usó ese método
+    if metodo_usado == 'bordes_externos':
+        edge1 = corners1[np.argmax(corners1[:, 0])]
+        edge2 = corners2[np.argmin(corners2[:, 0])]
+        ax1.plot([edge1[0], edge2[0]], [edge1[1], edge2[1]], '-', color='purple', linewidth=3, label='Distancia entre Bordes')
+    
+    ax1.legend(loc='upper right')
+    ax1.set_xlabel('Píxeles X')
+    ax1.set_ylabel('Píxeles Y')
+    ax1.grid(True, alpha=0.3)
+    
+    # Subplot 2: Información técnica y métricas
+    ax2.axis('off')
+    
+    # Crear tabla con información técnica
+    info_text = f"""
+    📊 INFORMACIÓN DE MEDICIÓN
+    
+    📏 Distancia Final: {distancia_final:.3f} metros
+    🎯 Método Utilizado: {metodo_usado.replace('_', ' ').title()}
+    ✅ Confianza: {confianza:.2f} ({confianza*100:.0f}%)
+    
+    📈 MÉTRICAS TÉCNICAS:
+    • Metros por píxel: {debug_info.get('metros_por_pixel', 0):.6f}
+    • Distancia entre centros: {debug_info.get('distancia_centros_metros', 0):.3f} m
+    • Distancia entre bordes: {debug_info.get('distancia_bordes_metros', 0):.3f} m
+    • Distancia multipunto: {debug_info.get('distancia_multipunto_metros', 0):.3f} m
+    • Número de puntos de medición: {debug_info.get('num_puntos_medicion', 0)}
+    • Mediciones previas: {debug_info.get('num_mediciones_previas', 0)}
+    
+    🔍 DIFERENCIAS:
+    • Centros vs Bordes: {debug_info.get('diferencia_centros_bordes', 0):.3f} m
+    • Multipunto vs Bordes: {debug_info.get('diferencia_multipunto_bordes', 0):.3f} m
+    
+    🆔 IDs Detectados: {debug_info.get('ids_detectados', [])}
+    """
+    
+    ax2.text(0.05, 0.95, info_text, transform=ax2.transAxes, fontsize=11,
+             verticalalignment='top', fontfamily='monospace',
+             bbox=dict(boxstyle="round,pad=0.5", facecolor="lightblue", alpha=0.8))
+    
+    # Agregar leyenda de colores
+    leyenda_colores = """
+    🎨 LEYENDA DE COLORES:
+    🔴 Rojo: Marcador ArUco 1
+    🔵 Azul: Marcador ArUco 2
+    🟢 Verde: Distancia entre centros
+    🟠 Naranja: Puntos de medición multipunto
+    🟣 Púrpura: Distancia entre bordes externos
+    """
+    
+    ax2.text(0.05, 0.3, leyenda_colores, transform=ax2.transAxes, fontsize=10,
+             verticalalignment='top', fontfamily='monospace',
+             bbox=dict(boxstyle="round,pad=0.5", facecolor="lightgreen", alpha=0.8))
+    
+    plt.tight_layout()
+    
+    # Convertir figura a imagen
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', dpi=150, bbox_inches='tight')
+    buf.seek(0)
+    plt.close()
+    
+    return buf
+
 # --- Ruta para procesar imagen y detectar ArUco con precisión mejorada ---
 @app.route("/detectar_aruco", methods=["POST"])
 def detectar_aruco():
@@ -415,6 +538,21 @@ def detectar_aruco():
             distancia_final = distancia_bordes_metros
             metodo_usado = "bordes_externos"
         
+        # Generar visualización del método de medición
+        try:
+            imagen_visualizacion = generar_visualizacion_medicion(
+                img, marker1_corners, marker2_corners, puntos_medicion,
+                distancia_final, metodo_usado, confianza, debug_info
+            )
+            
+            # Convertir la imagen de visualización a base64
+            imagen_visualizacion.seek(0)
+            imagen_base64 = base64.b64encode(imagen_visualizacion.read()).decode('utf-8')
+            imagen_visualizacion.close()
+        except Exception as e:
+            print(f"Error generando visualización: {str(e)}")
+            imagen_base64 = None
+        
         # Devuelve los resultados al frontend con información mejorada
         return jsonify({
             "success": True,
@@ -425,7 +563,8 @@ def detectar_aruco():
             "tamano_lado": TAMANO_REAL_LADO,
             "confianza": round(float(confianza), 2),
             "metodo_usado": metodo_usado,
-            "debug_info": debug_info
+            "debug_info": debug_info,
+            "visualizacion": imagen_base64
         })
         
     except Exception as e:
