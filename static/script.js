@@ -22,7 +22,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Inicializa FaceIO con manejo de errores
   try {
     if (typeof faceIO !== 'undefined') {
-      faceio = new faceIO("fioa827d", {
+      faceio = new faceIO("fioa0666", {
         container: "#faceio-modal-container"
       });
       console.log("FaceIO inicializado correctamente");
